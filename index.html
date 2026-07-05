@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>RedeCalc Pro GPS</title>
+<meta name="theme-color" content="#0d1526">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{
+  /* ── Paleta: prancha técnica + fio de cobre ── */
+  --ink:#0d1526;--ink2:#182238;--ink3:#212e49;
+  --cu:#c2703d;--cud:#a35a2c;--cul:#e8935a;--cubg:#fdf1e7;
+  --volt:#f2b705;--circuit:#2dd4bf;
+  --bl:#2563eb;--gr:#16a34a;--re:#dc2626;--ye:#eab308;
+  --g50:#faf9f6;--g100:#f2efe9;--g200:#e6e1d6;--g300:#d3ccbb;
+  --g400:#9a9284;--g600:#5b5346;--g800:#241f18;
+  --paper:#fffdf9;
+  --sh:0 1px 3px rgba(13,21,38,.08),0 1px 2px rgba(13,21,38,.06);
+  --shm:0 6px 16px -4px rgba(13,21,38,.28);
+  --shg:0 2px 10px rgba(194,112,61,.28);
+  --r:12px;
+  --fd:'Chakra Petch',sans-serif;--fb:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--fb);background:var(--g100);color:var(--g800);min-height:100vh;}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+/* NAV */
+nav{background:linear-gradient(120deg,var(--ink),var(--ink2) 55%,var(--ink3));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:56px;position:sticky;top:0;z-index:200;box-shadow:var(--shm);
+  background-image:linear-gradient(120deg,var(--ink),var(--ink2) 55%,var(--ink3)),repeating-linear-gradient(115deg,rgba(194,112,61,.09) 0 2px,transparent 2px 34px);}
+nav h1{font-family:var(--fd);font-size:16.5px;font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:8px;}
+nav h1 .bolt{color:var(--cu);filter:drop-shadow(0 0 5px rgba(194,112,61,.7));}
+#gpsIndicator{font-size:11px;background:rgba(255,255,255,.14);border-radius:20px;padding:4px 11px 4px 8px;font-weight:600;display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.12);}
+#gpsIndicator::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--g400);flex-shrink:0;}
+#gpsIndicator.on{background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.35);}
+#gpsIndicator.on::before{background:var(--circuit);box-shadow:0 0 0 0 rgba(45,212,191,.6);animation:pulse-dot 1.8s infinite;}
+@keyframes pulse-dot{0%{box-shadow:0 0 0 0 rgba(45,212,191,.55);}70%{box-shadow:0 0 0 7px rgba(45,212,191,0);}100%{box-shadow:0 0 0 0 rgba(45,212,191,0);}}
+
+/* TABS */
+.tabs{display:flex;background:var(--paper);border-bottom:1px solid var(--g200);position:sticky;top:56px;z-index:199;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:60px;padding:11px 3px 9px;text-align:center;font-size:10.5px;font-weight:600;color:var(--g400);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s;white-space:nowrap;user-select:none;}
+.tab.active{color:var(--cu);border-bottom-color:var(--cu);}
+.tab:active{color:var(--cud);}
+
+/* PAGES */
+.page{display:none;padding:13px;max-width:820px;margin:0 auto;}
+.page.active{display:block;animation:fade-up .38s ease both;}
+@keyframes fade-up{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* CARD — cantos de prancha técnica */
+.card{position:relative;background:var(--paper);border-radius:var(--r);box-shadow:var(--sh);padding:15px 14px 14px;margin-bottom:12px;border:1px solid var(--g200);}
+.card::before,.card::after{content:'';position:absolute;width:9px;height:9px;pointer-events:none;}
+.card::before{top:5px;left:5px;border-top:1.5px solid var(--g300);border-left:1.5px solid var(--g300);}
+.card::after{bottom:5px;right:5px;border-bottom:1.5px solid var(--g300);border-right:1.5px solid var(--g300);}
+.card h2{font-family:var(--fd);font-size:12.5px;font-weight:700;color:var(--cud);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--g300);}
+
+/* FORM */
+label{display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:3px;margin-top:9px;}
+input,select,textarea{width:100%;padding:9px 11px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;color:var(--g800);background:var(--g50);transition:border .2s,box-shadow .2s;appearance:auto;-webkit-appearance:auto;font-family:var(--fb);}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--cu);background:#fff;box-shadow:0 0 0 3px rgba(194,112,61,.15);}
+textarea{resize:vertical;min-height:58px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:10px 15px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;transition:transform .12s,filter .15s,box-shadow .15s;font-family:var(--fb);}
+.btn:active{transform:scale(.96);}
+.btn-primary{background:linear-gradient(135deg,var(--cul),var(--cu));color:#fff;box-shadow:var(--shg);}
+.btn-primary:active{filter:brightness(.92);}
+.btn-outline{background:#fff;color:var(--cu);border:1.5px solid var(--cu);}
+.btn-outline:active{background:var(--cubg);}
+.btn-green{background:linear-gradient(135deg,#22c55e,var(--gr));color:#fff;}
+.btn-green:active{filter:brightness(.92);}
+.btn-blue{background:linear-gradient(135deg,#3b82f6,var(--bl));color:#fff;}
+.btn-blue:active{filter:brightness(.92);}
+.btn-red{background:linear-gradient(135deg,#ef4444,var(--re));color:#fff;}
+.btn-red:active{filter:brightness(.92);}
+.btn-yellow{background:linear-gradient(135deg,#fcd34d,var(--ye));color:#402d02;}
+.btn-sm{padding:7px 12px;font-size:12px;}
+.btn-full{width:100%;margin-top:10px;}
+.btn-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+
+/* GPS BOX */
+.gps-box{background:var(--g50);border-radius:8px;padding:10px;font-size:13px;border:1px solid var(--g200);}
+.gps-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed var(--g200);}
+.gps-row:last-child{border-bottom:none;}
+.gps-label{color:var(--g400);font-size:12px;}
+.gps-val{font-weight:700;color:var(--g800);font-size:13px;font-family:var(--fd);}
+.gps-val.good{color:var(--gr);}
+.gps-val.bad{color:var(--re);}
+
+/* POINTS */
+.dist-badge{background:var(--cubg);color:var(--cud);font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;display:inline-block;}
+.point-item{background:var(--g50);border-radius:8px;padding:10px;margin-bottom:7px;border-left:4px solid var(--cu);animation:fade-up .3s ease both;}
+.point-item h3{font-size:13.5px;font-weight:700;display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
+.point-item p{font-size:11.5px;color:var(--g600);margin-top:3px;}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.tag{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;}
+.tag-mt{background:#fee2e2;color:var(--re);}
+.tag-bt{background:#dcfce7;color:var(--gr);}
+.tag-tr{background:#dbeafe;color:var(--bl);}
+.tag-ch{background:#fef9c3;color:#92400e;}
+.tag-new{background:#f0fdf4;color:var(--gr);}
+.tag-ex{background:var(--g100);color:var(--g600);}
+
+/* EVIDENCE */
+.ev-item{background:var(--g50);border-radius:8px;overflow:hidden;margin-bottom:10px;border:1px solid var(--g200);animation:fade-up .3s ease both;}
+.ev-img{width:100%;max-height:180px;object-fit:cover;display:block;}
+.ev-body{padding:9px 11px;}
+.ev-body p{font-size:12.5px;color:var(--g800);}
+.ev-meta{font-size:11px;color:var(--g400);margin-top:3px;}
+
+/* CANVAS */
+#mapCanvas{width:100%;border-radius:8px;border:1px solid var(--g200);background:#f3f0ea;display:block;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px;}
+.stat{background:var(--paper);border-radius:var(--r);padding:12px;text-align:center;box-shadow:var(--sh);border:1px solid var(--g200);}
+.stat-val{font-family:var(--fd);font-size:22px;font-weight:700;color:var(--cu);}
+.stat-label{font-size:10.5px;color:var(--g400);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
+
+/* ALERTS */
+.alert{padding:9px 13px;border-radius:8px;font-size:12.5px;margin-bottom:8px;animation:fade-up .25s ease both;}
+.alert-info{background:#eff6ff;color:#1d4ed8;border-left:3px solid #1d4ed8;}
+.alert-success{background:#f0fdf4;color:var(--gr);border-left:3px solid var(--gr);}
+.alert-warn{background:#fefce8;color:#92400e;border-left:3px solid var(--ye);}
+.alert-error{background:#fef2f2;color:var(--re);border-left:3px solid var(--re);}
+
+/* CHECK */
+.check-row{display:flex;align-items:center;gap:8px;margin-top:9px;}
+.check-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--cu);flex-shrink:0;}
+.check-row label{margin:0;font-size:13px;font-weight:500;}
+
+/* SIG */
+#sigCanvas{width:100%;height:110px;border:1.5px dashed var(--g300);border-radius:8px;background:#fff;touch-action:none;cursor:crosshair;}
+
+/* HERO */
+.hero{position:relative;overflow:hidden;background:linear-gradient(140deg,var(--ink),var(--ink3) 60%,var(--cud));color:#fff;border-radius:var(--r);padding:20px 16px;margin-bottom:13px;}
+.hero::after{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(115deg,rgba(232,147,90,.08) 0 2px,transparent 2px 30px);pointer-events:none;}
+.hero h2{font-family:var(--fd);font-size:21px;font-weight:700;letter-spacing:.3px;position:relative;}
+.hero p{font-size:12.5px;opacity:.85;margin-top:5px;position:relative;}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.feat{background:var(--paper);border-radius:var(--r);padding:12px;box-shadow:var(--sh);border:1px solid var(--g200);transition:transform .15s;}
+.feat:active{transform:scale(.97);}
+.feat .ico{font-size:19px;margin-bottom:4px;}
+.feat h3{font-size:12.5px;font-weight:700;font-family:var(--fd);}
+.feat p{font-size:11px;color:var(--g400);margin-top:2px;}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(13,21,38,.6);backdrop-filter:blur(2px);z-index:500;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;animation:fade-up .2s ease both;}
+.modal{background:var(--paper);border-radius:14px;padding:22px 18px;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(13,21,38,.35);border:1px solid var(--g200);}
+.modal h3{font-family:var(--fd);font-size:16px;font-weight:700;margin-bottom:5px;}
+.modal p{font-size:13px;color:var(--g600);margin-bottom:16px;}
+
+/* SECTION */
+.sec-title{font-family:var(--fd);font-size:19px;font-weight:700;color:var(--g800);margin-bottom:3px;}
+.sec-sub{font-size:12.5px;color:var(--g400);margin-bottom:13px;}
+
+/* GPS error msg */
+#gpsErrorBox{display:none;}
+@media(min-width:560px){.stats{grid-template-columns:repeat(4,1fr);}}
+</style>
+</head>
+<body>
+
+<!-- MODAL NOVO PROJETO -->
+<div class="modal-bg" id="modalNovo">
+  <div class="modal">
+    <h3>⚠️ Novo Projeto</h3>
+    <p>Isso vai apagar todos os pontos, evidências e dados do projeto atual. Deseja continuar?</p>
+    <div class="btn-row">
+      <button class="btn btn-red" style="flex:1" onclick="confirmNovoproject()">🗑️ Sim, apagar tudo</button>
+      <button class="btn btn-outline" style="flex:1" onclick="fecharModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <h1><span class="bolt">⚡</span> RedeCalc Pro GPS</h1>
+  <span id="gpsIndicator">GPS OFF</span>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="goTab('home')">🏠 Início</div>
+  <div class="tab" onclick="goTab('project')">📋 Projeto</div>
+  <div class="tab" onclick="goTab('gps')">📍 GPS</div>
+  <div class="tab" onclick="goTab('evidence')">📷 Evidências</div>
+  <div class="tab" onclick="goTab('streetmap')">🗺️ Ruas</div>
+  <div class="tab" onclick="goTab('export')">📤 Exportar</div>
+</div>
+
+<!-- ═══ HOME ═══ -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <svg width="118" height="104" viewBox="0 0 118 104" style="position:absolute;right:-6px;bottom:-8px;opacity:.9" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="glowH" cx="50%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#f2b705" stop-opacity=".55"/>
+          <stop offset="100%" stop-color="#f2b705" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <circle cx="70" cy="38" r="34" fill="url(#glowH)"/>
+      <path d="M2 78 Q40 40 58 30" stroke="#e8935a" stroke-width="1.3" fill="none" opacity=".7"/>
+      <path d="M2 88 Q40 50 58 38" stroke="#e8935a" stroke-width="1.3" fill="none" opacity=".55"/>
+      <path d="M58 30 Q85 46 116 68" stroke="#e8935a" stroke-width="1.3" fill="none" opacity=".7"/>
+      <path d="M58 38 Q85 56 116 78" stroke="#e8935a" stroke-width="1.3" fill="none" opacity=".55"/>
+      <rect x="55" y="14" width="6" height="76" rx="1.5" fill="#1b1410"/>
+      <rect x="38" y="26" width="40" height="5" rx="2" fill="#1b1410"/>
+      <ellipse cx="45" cy="24" rx="3" ry="4" fill="#2b211a"/>
+      <ellipse cx="58" cy="22" rx="3" ry="5" fill="#2b211a"/>
+      <ellipse cx="71" cy="24" rx="3" ry="4" fill="#2b211a"/>
+      <path d="M60 42 L52 60 L59 60 L54 76 L69 55 L61 55 Z" fill="#f2b705"/>
+    </svg>
+    <h2>RedeCalc Pro GPS</h2>
+    <p>Projeto georreferenciado de redes elétricas.<br>Modelo Equatorial — prancha técnica com carimbo.</p>
+    <p style="font-size:10.5px;opacity:.75;margin-top:6px">by Nick5188</p>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-outline" style="background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.45)" onclick="goTab('gps')">📍 Ir para GPS</button>
+      <button class="btn btn-outline" style="background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.45)" onclick="goTab('export')">📤 Exportar PDF</button>
+      <button class="btn btn-outline" style="background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.45)" onclick="abrirModalNovo()">🆕 Novo Projeto</button>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="hPontos">0</div><div class="stat-label">Pontos</div></div>
+    <div class="stat"><div class="stat-val" id="hEvidencias">0</div><div class="stat-label">Evidências</div></div>
+    <div class="stat"><div class="stat-val" id="hDist">0 m</div><div class="stat-label">Distância</div></div>
+    <div class="stat"><div class="stat-val" id="hPrec">--</div><div class="stat-label">Precisão GPS</div></div>
+  </div>
+  <div class="feat-grid">
+    <div class="feat"><div class="ico">📍</div><h3>GPS em tempo real</h3><p>Lat/lng com precisão</p></div>
+    <div class="feat"><div class="ico">🏗️</div><h3>Estruturas MT/BT</h3><p>Postes, cabos e equipamentos</p></div>
+    <div class="feat"><div class="ico">📷</div><h3>Evidências</h3><p>Fotos com GPS e comentários</p></div>
+    <div class="feat"><div class="ico">📄</div><h3>Prancha técnica</h3><p>Modelo Equatorial com carimbo</p></div>
+  </div>
+</div>
+
+<!-- ═══ PROJETO ═══ -->
+<div id="page-project" class="page">
+  <p class="sec-title">Dados do Projeto</p>
+  <p class="sec-sub">Preenchidos no carimbo da prancha PDF</p>
+
+  <div class="card">
+    <h2>Carimbo / Prancha</h2>
+    <label>Concessionária / Empresa</label>
+    <input id="empresa" type="text" placeholder="Ex: Equatorial Piauí">
+    <label>Descrição da Obra</label>
+    <input id="obra" type="text" placeholder="Ex: DV-NIV-SPP-UC-17086574 -CO-0171590">
+    <label>Interessado</label>
+    <input id="interessado" type="text" placeholder="Nome do interessado">
+    <label>Cidade / Local</label>
+    <input id="cidade" type="text" placeholder="Ex: URUCUI">
+    <label>Referência</label>
+    <input id="referencia" type="text" placeholder="Ex: Rua das Palmeiras">
+    <label>Projeto Nº</label>
+    <input id="projetoNum" type="text" placeholder="Ex: 440188530">
+    <label>Alimentador</label>
+    <input id="alimentador" type="text" placeholder="Ex: SPPC1C3">
+    <label>Folha</label>
+    <input id="folha" type="text" placeholder="Ex: 001" value="001">
+    <label>Projetista</label>
+    <input id="projetista" type="text" placeholder="Nome do projetista">
+    <label>Aprovação</label>
+    <input id="aprovacao" type="text" placeholder="Nome do aprovador">
+    <label>Data</label>
+    <input id="dataProjeto" type="date">
+    <label>Escala</label>
+    <select id="escala"><option>1:500</option><option>1:1000</option><option>1:2000</option><option>1:5000</option><option>Sem escala</option></select>
+    <button class="btn btn-primary btn-full" onclick="salvarProjeto()">💾 Salvar dados</button>
+  </div>
+
+  <div class="card">
+    <h2>📦 Resumo de Materiais</h2>
+    <p style="font-size:11.5px;color:var(--g400);margin-bottom:8px">Calculado automaticamente a partir dos pontos adicionados na aba GPS. Metragem de cabo trifásico ×3, bifásico ×2, monofásico ×1.</p>
+    <div id="matResumo"><p style="color:var(--g400);font-size:13px">Nenhum ponto adicionado ainda.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Assinatura Digital</h2>
+    <label>Nome do responsável</label><input id="sigNome" type="text" placeholder="Nome completo">
+    <label>Cargo / Função</label>
+    <select id="sigCargo">
+      <option>Encarregado</option><option>Técnico em Eletrotécnica</option>
+      <option>Engenheiro Eletricista</option><option>Fiscal</option><option>Outro</option>
+    </select>
+    <div style="margin-top:10px"><canvas id="sigCanvas"></canvas></div>
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" onclick="clearSig()">🗑️ Limpar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveSig()">✅ Salvar assinatura</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ GPS ═══ -->
+<div id="page-gps" class="page">
+  <p class="sec-title">Campo GPS</p>
+  <p class="sec-sub">Capture pontos e adicione estruturas</p>
+
+  <!-- GPS STATUS -->
+  <div class="card">
+    <h2>Status GPS</h2>
+    <div id="gpsErrorBox" class="alert alert-error" style="margin-bottom:10px">
+      ⚠️ <strong>Erro GPS:</strong> <span id="gpsErrorMsg"></span><br>
+      <small>Abra este app via <b>HTTPS</b> (GitHub Pages, etc.) ou permita localização nas configurações do navegador.</small>
+    </div>
+    <div class="gps-box">
+      <div class="gps-row"><span class="gps-label">Latitude</span><span class="gps-val" id="gLat">--</span></div>
+      <div class="gps-row"><span class="gps-label">Longitude</span><span class="gps-val" id="gLng">--</span></div>
+      <div class="gps-row"><span class="gps-label">Precisão</span><span class="gps-val" id="gAcc">--</span></div>
+      <div class="gps-row"><span class="gps-label">Dist. último poste</span><span class="gps-val" id="gDist">--</span></div>
+      <div class="gps-row"><span class="gps-label">Altitude</span><span class="gps-val" id="gAlt">--</span></div>
+      <div class="gps-row"><span class="gps-label">Próximo ponto</span><span class="gps-val" id="gNext" style="color:var(--cu)">P1</span></div>
+    </div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn btn-green btn-sm" id="btnOn" onclick="startGPS()">📡 Ligar GPS</button>
+      <button class="btn btn-red btn-sm" id="btnOff" onclick="stopGPS()" disabled>⛔ Parar</button>
+      <button class="btn btn-outline btn-sm" onclick="limparTudo()">🗑️ Limpar tudo</button>
+    </div>
+  </div>
+
+  <!-- ADD STRUCTURE -->
+  <div class="card">
+    <h2>Adicionar Estrutura</h2>
+    <p style="font-size:11.5px;color:var(--g400);margin-bottom:4px">Todas as informações preenchidas abaixo serão exibidas no card do ponto e desenhadas no mapa do projeto, na posição GPS onde a estrutura for adicionada.</p>
+    <label>Nome / Código do poste</label>
+    <input id="pNome" type="text" placeholder="Ex: C508931, P1, TR-01">
+
+    <label>Tipo de poste</label>
+    <select id="pPoste">
+      <option value="">-- Nenhum --</option>
+      <optgroup label="── Madeira ──">
+        <option>Madeira 7m</option><option>Madeira 9m</option><option>Madeira 11m</option>
+      </optgroup>
+      <optgroup label="── Concreto (DIN) ──">
+        <option>9-300</option><option>9-600</option><option>10-300</option>
+        <option>11-300</option><option>11-600</option><option>11-1000</option>
+        <option>11-1500</option><option>13-600</option><option>13-1500</option>
+      </optgroup>
+      <optgroup label="── Metálico ──">
+        <option>Metálico tubular</option>
+        <option>Metálico padrão 5m</option>
+        <option>Metálico padrão 7m</option>
+      </optgroup>
+    </select>
+
+    <label>Situação do poste</label>
+    <select id="pSit">
+      <option value="novo">Poste novo</option>
+      <option value="existente">Poste existente</option>
+    </select>
+
+    <label>Aterramento</label>
+    <select id="pAterr">
+      <option value="nao">Não</option>
+      <option value="haste">Sim — haste e descida</option>
+      <option value="transformador">Aterramento do transformador</option>
+    </select>
+
+    <div class="check-row"><input type="checkbox" id="pTr"><label for="pTr">Transformador instalado</label></div>
+    <div id="trDiv" style="display:none">
+      <label>Tipo do transformador</label>
+      <select id="pTrTipo">
+        <option value="mono">Transformador Monofásico</option>
+        <option value="bi">Transformador Bifásico</option>
+        <option value="tri">Transformador Trifásico</option>
+        <option value="religador">Religador (BRT)</option>
+      </select>
+      <label>Potência do transformador</label>
+      <select id="pTrPot">
+        <option>15 kVA</option><option>30 kVA</option><option>45 kVA</option>
+        <option>75 kVA</option><option>112,5 kVA</option><option>150 kVA</option>
+        <option>225 kVA</option><option>300 kVA</option>
+      </select>
+      <label>Tensão do transformador</label>
+      <select id="pTrTensao">
+        <option>13,8kV / 220-127V</option><option>13,8kV / 380-220V</option>
+        <option>34,5kV / 220-127V</option><option>34,5kV / 380-220V</option>
+      </select>
+    </div>
+
+    <div class="check-row"><input type="checkbox" id="pChave"><label for="pChave">Adicionar chave</label></div>
+    <div id="chDiv" style="display:none">
+      <label>Tipo de chave</label>
+      <select id="pTipoChave">
+        <option>Chave faca</option><option>Chave fusível</option><option>Religadora</option>
+        <option>Seccionadora</option><option>Chave a óleo</option>
+      </select>
+    </div>
+
+    <label>Estrutura primária (MT)</label>
+    <select id="pEstMT">
+      <option value="">-- Nenhuma --</option>
+      <optgroup label="── Série N ──">
+        <option>N1</option><option>N2</option><option>N3</option><option>N4</option>
+        <option>N3N3</option><option>N1N3</option><option>2N1</option><option>N1DNCE</option>
+      </optgroup>
+      <optgroup label="── Série CE ──">
+        <option>CE1</option><option>CE2</option><option>CE3</option><option>CE4</option>
+        <option>CE2CE3</option><option>CE1CE3</option>
+      </optgroup>
+      <optgroup label="── Série B ──">
+        <option>B1</option><option>B2</option><option>B3</option><option>B4</option>
+        <option>B1B3</option><option>B3B3</option>
+      </optgroup>
+      <optgroup label="── Série U ──">
+        <option>U1</option><option>U2</option><option>U3</option><option>U4</option>
+        <option>U3U3</option><option>U1U3</option>
+      </optgroup>
+      <option value="__outro__">✏️ Digitar estrutura...</option>
+    </select>
+    <div id="estMTOutroDiv" style="display:none">
+      <label>Estrutura MT (digitada)</label>
+      <input id="pEstMTOutro" type="text" placeholder="Ex: N2N3">
+    </div>
+
+    <label>Cabo da rede MT</label>
+    <select id="pCaboMT">
+      <option value="">-- Nenhum --</option>
+      <optgroup label="── CA (Alumínio) ──">
+        <option>CA 25mm²</option><option>CA 35mm²</option><option>CA 50mm²</option><option>CA 70mm²</option>
+      </optgroup>
+      <optgroup label="── ACSR ──">
+        <option>ACSR 25mm²</option><option>ACSR 35mm²</option><option>ACSR 50mm²</option><option>ACSR 70mm²</option>
+      </optgroup>
+      <optgroup label="── Nu MT (AWG) ──">
+        <option>Nu MT 2 AWG</option><option>Nu MT 1/0 AWG</option>
+        <option>Nu MT 4/0 AWG</option><option>Nu MT 336 MCM</option>
+      </optgroup>
+      <optgroup label="── Rede Compacta XLPE ──">
+        <option>XLPE 35mm²</option><option>XLPE 50mm²</option>
+        <option>XLPE 70mm²</option><option>XLPE 185mm²</option>
+      </optgroup>
+      <option value="__outro__">✏️ Digitar cabo...</option>
+    </select>
+    <div id="caboMTOutroDiv" style="display:none">
+      <label>Cabo MT (digitado)</label>
+      <input id="pCaboMTOutro" type="text" placeholder="Ex: CAA 4/0 AWG">
+    </div>
+
+    <label>Situação do cabo MT</label>
+    <select id="pCaboMTSit">
+      <option value="novo">Cabo novo</option>
+      <option value="existente">Cabo existente</option>
+    </select>
+
+    <label>Tipo de rede MT (fases)</label>
+    <select id="pRedeMT">
+      <option value="tri">Trifásica (metragem ×3)</option>
+      <option value="bi">Bifásica (metragem ×2)</option>
+      <option value="mono">Monofásica (metragem ×1)</option>
+    </select>
+
+    <label>Tipo de trecho (linha desenhada até este ponto)</label>
+    <select id="pTrechoMT">
+      <option value="mt">Rede MT — linha tracejada (vermelha=novo / preta=existente)</option>
+      <option value="bt">Rede BT — linha contínua (verde=novo / azul=existente)</option>
+    </select>
+
+    <label>Estrutura secundária (BT)</label>
+    <select id="pEstBT">
+      <option value="">-- Nenhuma --</option>
+      <option>S1</option><option>S3</option><option>S1S3</option><option>S4</option>
+      <option value="__outro__">✏️ Digitar estrutura...</option>
+    </select>
+    <div id="estBTOutroDiv" style="display:none">
+      <label>Estrutura BT (digitada)</label>
+      <input id="pEstBTOutro" type="text" placeholder="Ex: S2S4">
+    </div>
+
+    <label>Cabo da rede BT</label>
+    <select id="pCaboBT">
+      <option value="">-- Nenhum --</option>
+      <optgroup label="── Multiplex ──">
+        <option>Multiplex 16mm²</option><option>Multiplex 25mm²</option>
+        <option>Multiplex 35mm²</option><option>Multiplex 50mm²</option>
+      </optgroup>
+      <optgroup label="── Monofásico ──">
+        <option>Monofásico 2x35mm²</option>
+      </optgroup>
+      <optgroup label="── Trifásico ──">
+        <option>Trifásico 4x35mm²</option><option>Trifásico 4x70mm²</option><option>Trifásico 4x120mm²</option>
+      </optgroup>
+      <optgroup label="── ABCN ──">
+        <option>ABCN 3#2 AWG CA</option><option>ABCN 3#4 AWG CA</option>
+        <option>ABCN 3#1/0 AWG CA</option><option>ABCN 3#4/0 AWG CA</option>
+      </optgroup>
+      <optgroup label="── Multiplex MULT ──">
+        <option>3#X70 MULT</option><option>3#X120(70) MULT</option>
+      </optgroup>
+      <optgroup label="── Nu BT ──">
+        <option>Nu BT 16mm²</option><option>Nu BT 25mm²</option><option>Nu BT 35mm²</option>
+      </optgroup>
+      <option value="__outro__">✏️ Digitar cabo...</option>
+    </select>
+    <div id="caboBTOutroDiv" style="display:none">
+      <label>Cabo BT (digitado)</label>
+      <input id="pCaboBTOutro" type="text" placeholder="Ex: 2x16mm² CA">
+    </div>
+
+    <label>Situação do cabo BT</label>
+    <select id="pCaboBTSit">
+      <option value="existente">Cabo existente</option>
+      <option value="novo">Cabo novo</option>
+    </select>
+
+    <label>Tipo de rede BT (fases)</label>
+    <select id="pRedeBT">
+      <option value="mono">Monofásica (metragem ×1)</option>
+      <option value="bi">Bifásica (metragem ×2)</option>
+      <option value="tri">Trifásica (metragem ×3)</option>
+    </select>
+
+    <label>Observação</label>
+    <textarea id="pObs" placeholder="Observações sobre esta estrutura..."></textarea>
+
+    <button class="btn btn-primary btn-full" onclick="addPoint()">📌 Adicionar estrutura no local atual</button>
+    <div id="gpsWarn" class="alert alert-warn" style="display:none;margin-top:8px">⚠️ GPS inativo. Usando coordenada demonstrativa.</div>
+  </div>
+
+  <!-- MAP CANVAS -->
+  <div class="card">
+    <h2>Mapa / Desenho do projeto</h2>
+    <canvas id="mapCanvas" height="290"></canvas>
+    <p style="font-size:11px;color:var(--g400);margin-top:5px">
+      □ Vermelho = Poste novo &nbsp;□ Preto = Poste existente &nbsp;🟣 Transformador<br>
+      ┅ Vermelho tracejado = Cabo MT novo &nbsp;┅ Preto tracejado = Cabo MT existente<br>
+      ── Verde = Cabo BT novo &nbsp;── Azul = Cabo BT existente
+    </p>
+  </div>
+
+  <!-- POINTS LIST -->
+  <div class="card">
+    <h2>Pontos do Projeto <span id="countBadge" style="background:var(--cu);color:#fff;border-radius:20px;padding:1px 9px;font-size:11px;margin-left:5px">0</span></h2>
+    <div id="pointsList"><p style="color:var(--g400);font-size:13px">Nenhum ponto adicionado ainda.</p></div>
+  </div>
+</div>
+
+<!-- ═══ EVIDÊNCIAS ═══ -->
+<div id="page-evidence" class="page">
+  <p class="sec-title">Evidências</p>
+  <p class="sec-sub">Fotos com GPS e comentários de campo</p>
+  <div class="card">
+    <h2>Nova Evidência</h2>
+    <label>Foto da evidência</label>
+    <input type="file" id="evFoto" accept="image/*" capture="environment">
+    <div id="evPreview" style="margin-top:8px"></div>
+    <label>Comentário / Descrição</label>
+    <textarea id="evComent" placeholder="Descreva o que foi fotografado..."></textarea>
+    <label>Responsável pelo registro</label>
+    <input id="evResp" type="text" placeholder="Nome do responsável">
+    <div id="evGpsInfo" class="alert alert-info" style="display:none;margin-top:8px"></div>
+    <button class="btn btn-primary btn-full" onclick="saveEvidence()">📷 Salvar evidência</button>
+  </div>
+  <div class="card">
+    <h2>Evidências salvas <span id="evCount" style="background:var(--cu);color:#fff;border-radius:20px;padding:1px 9px;font-size:11px;margin-left:5px">0</span></h2>
+    <div id="evList"><p style="color:var(--g400);font-size:13px">Nenhuma evidência registrada ainda.</p></div>
+  </div>
+</div>
+
+<!-- ═══ MAPA DE RUAS ═══ -->
+<div id="page-streetmap" class="page">
+  <p class="sec-title">Mapa de Ruas</p>
+  <p class="sec-sub">Mostra as ruas reais onde as estruturas serão adicionadas</p>
+  <div class="card">
+    <h2>Mapa de Ruas (OpenStreetMap)</h2>
+    <div id="streetMapEl" style="width:100%;height:320px;border-radius:8px;border:1px solid var(--g200);background:var(--g50)"></div>
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" onclick="loadStreetMap()">🔄 Carregar / Atualizar mapa</button>
+      <button class="btn btn-blue btn-sm" onclick="exportStreetMapPDF()">📥 Baixar / Compartilhar PDF</button>
+    </div>
+    <p style="font-size:11px;color:var(--g400);margin-top:6px">🔴 Poste novo &nbsp;⚫ Poste existente. Requer conexão com a internet para carregar as ruas.</p>
+  </div>
+</div>
+
+<!-- ═══ EXPORTAR ═══ -->
+<div id="page-export" class="page">
+  <p class="sec-title">Exportar</p>
+  <p class="sec-sub">Gere PDFs no modelo de prancha técnica</p>
+
+  <div class="card">
+    <h2>📋 Prancha Técnica — Modelo Equatorial</h2>
+    <p style="font-size:13px;color:var(--g600);margin-bottom:10px">
+      Gera prancha A4 com carimbo no rodapé (empresa, obra, projetista, aprovação, escala, nº projeto), mapa do traçado e tabela de pontos. Se o dispositivo suportar, abre o menu de compartilhamento; senão baixa o arquivo.
+    </p>
+    <div class="btn-row">
+      <button class="btn btn-primary" style="flex:1" onclick="exportProjectPDF()">📄 PDF (Prancha)</button>
+      <button class="btn btn-outline" style="flex:1" onclick="exportProjectDOC()">📝 Word (.doc)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📷 Relatório de Evidências</h2>
+    <p style="font-size:13px;color:var(--g600);margin-bottom:10px">Fotos, coordenadas GPS, comentários e link Google Maps.</p>
+    <button class="btn btn-blue btn-full" onclick="exportEvidencePDF()">🖼️ PDF de Evidências</button>
+  </div>
+
+  <div class="card">
+    <h2>🗺️ Mapa de Ruas</h2>
+    <p style="font-size:13px;color:var(--g600);margin-bottom:10px">Exporta o mapa de ruas carregado na aba "Ruas" (é preciso carregá-lo lá antes).</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" style="flex:1" onclick="exportStreetMapPDF()">📄 PDF (Mapa de Ruas)</button>
+      <button class="btn btn-outline" style="flex:1" onclick="exportStreetMapDOC()">📝 Word (.doc)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🆕 Novo Projeto</h2>
+    <p style="font-size:13px;color:var(--g600);margin-bottom:10px">Apaga todos os dados e inicia um projeto em branco.</p>
+    <button class="btn btn-red btn-full" onclick="abrirModalNovo()">🗑️ Limpar e iniciar novo projeto</button>
+  </div>
+
+  <div class="card">
+    <h2>📦 Outros formatos</h2>
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="exportJSON()">JSON</button>
+    </div>
+  </div>
+  <div id="exportStatus" style="display:none"></div>
+</div>
+
+<script>
+// ══════════ TRATAMENTO GLOBAL DE ERROS ══════════
+window.onerror=function(msg,url,line,col,error){
+  console.error('Erro no RedeCalc Pro GPS:',msg,'| linha',line,'| coluna',col,error);
+  try{showStatus('⚠️ Ocorreu um erro inesperado: '+msg,'error');}catch(e){}
+  return false;
+};
+window.addEventListener('unhandledrejection',function(ev){
+  console.error('Promessa rejeitada sem tratamento:',ev.reason);
+  try{showStatus('⚠️ Erro assíncrono: '+(ev.reason&&ev.reason.message||ev.reason),'error');}catch(e){}
+});
+
+// ══════════ STATE ══════════
+const S={
+  watcher:null, pos:null,
+  points:[], evidences:[],
+  proj:{}, sig:null, sigDrawing:false
+};
+
+// ══════════ PERSISTÊNCIA AUTOMÁTICA (IndexedDB) ══════════
+// Salva o projeto sozinho a cada alteração, pra não perder nada se atualizar a página (F5),
+// fechar o navegador ou o app for interrompido no celular.
+const DB_NAME='redecalc_pro_gps_db',DB_STORE='estado',DB_KEY='projeto_atual';
+let _dbInstance=null;
+function abrirDB(){
+  return new Promise((resolve,reject)=>{
+    if(_dbInstance)return resolve(_dbInstance);
+    if(!window.indexedDB)return reject(new Error('IndexedDB indisponível neste navegador.'));
+    const req=indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=e=>{ if(!e.target.result.objectStoreNames.contains(DB_STORE)) e.target.result.createObjectStore(DB_STORE); };
+    req.onsuccess=e=>{_dbInstance=e.target.result;resolve(_dbInstance);};
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+let _autoSaveTimer=null;
+function autoSave(){
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer=setTimeout(async()=>{
+    try{
+      const db=await abrirDB();
+      const tx=db.transaction(DB_STORE,'readwrite');
+      tx.objectStore(DB_STORE).put(JSON.stringify({points:S.points,evidences:S.evidences,proj:S.proj,sig:S.sig}),DB_KEY);
+    }catch(e){console.error('Falha ao salvar automaticamente:',e);}
+  },400);
+}
+function hidratarCamposProjeto(){
+  const p=S.proj||{};
+  ['empresa','obra','interessado','cidade','referencia','projetoNum','alimentador','folha','projetista','aprovacao','dataProjeto','escala']
+    .forEach(id=>{const el=document.getElementById(id);if(el&&p[id]!==undefined)el.value=p[id];});
+  const sn=document.getElementById('sigNome'),sc=document.getElementById('sigCargo');
+  if(sn&&p.sigNome)sn.value=p.sigNome;
+  if(sc&&p.sigCargo)sc.value=p.sigCargo;
+}
+function restaurarAssinaturaCanvas(){
+  if(!S.sig)return;
+  const cv=document.getElementById('sigCanvas');if(!cv)return;
+  const img=new Image();
+  img.onload=()=>{cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);};
+  img.src=S.sig;
+}
+async function autoRestore(){
+  try{
+    const db=await abrirDB();
+    const tx=db.transaction(DB_STORE,'readonly');
+    const req=tx.objectStore(DB_STORE).get(DB_KEY);
+    req.onsuccess=()=>{
+      if(!req.result)return;
+      try{
+        const saved=JSON.parse(req.result);
+        const temConteudo=(saved.points&&saved.points.length)||(saved.evidences&&saved.evidences.length)||(saved.proj&&Object.keys(saved.proj).length);
+        if(!temConteudo)return;
+        S.points=saved.points||[];S.evidences=saved.evidences||[];S.proj=saved.proj||{};S.sig=saved.sig||null;
+        hidratarCamposProjeto();
+        renderPoints();renderEvidences();drawMap();updateStats();
+        setTimeout(restaurarAssinaturaCanvas,200);
+        showStatus('✅ Projeto salvo automaticamente foi restaurado.','info');
+      }catch(err){console.error('Erro ao restaurar projeto salvo:',err);}
+    };
+    req.onerror=e=>console.error('Erro ao ler autosave:',e);
+  }catch(e){console.error('Falha ao restaurar automaticamente:',e);}
+}
+async function clearAutoSave(){
+  try{const db=await abrirDB();db.transaction(DB_STORE,'readwrite').objectStore(DB_STORE).delete(DB_KEY);}catch(e){console.error(e);}
+}
+
+// ══════════ TABS ══════════
+function goTab(id){
+  const ids=['home','project','gps','evidence','streetmap','export'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ids[i]===id));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(id==='gps')drawMap();
+  if(id==='home')updateStats();
+  if(id==='streetmap'&&streetMap)setTimeout(()=>streetMap.invalidateSize(),150);
+}
+
+// ══════════ MODAL NOVO PROJETO ══════════
+function abrirModalNovo(){document.getElementById('modalNovo').classList.add('open');}
+function fecharModal(){document.getElementById('modalNovo').classList.remove('open');}
+// confirmNovoproject() é definida uma única vez, mais abaixo, e o botão do modal é ligado a ela lá.
+
+// ══════════ GPS ══════════
+function startGPS(){
+  const errBox=document.getElementById('gpsErrorBox');
+  const errMsg=document.getElementById('gpsErrorMsg');
+  errBox.style.display='none';
+
+  if(!navigator.geolocation){
+    errMsg.textContent='Geolocalização não suportada neste navegador.';
+    errBox.style.display='block';
+    return;
+  }
+
+  document.getElementById('btnOn').disabled=true;
+  document.getElementById('btnOff').disabled=false;
+  const ind=document.getElementById('gpsIndicator');
+  ind.textContent='GPS ON';ind.classList.add('on');
+
+  S.watcher=navigator.geolocation.watchPosition(
+    pos=>{
+      S.pos=pos;
+      errBox.style.display='none';
+      const{latitude:la,longitude:lo,accuracy:ac,altitude:al}=pos.coords;
+      document.getElementById('gLat').textContent=la.toFixed(7);
+      document.getElementById('gLng').textContent=lo.toFixed(7);
+      const aEl=document.getElementById('gAcc');
+      aEl.textContent=ac.toFixed(1)+' m';
+      aEl.className='gps-val '+(ac<10?'good':ac<30?'':'bad');
+      document.getElementById('gAlt').textContent=al?al.toFixed(1)+' m':'--';
+      document.getElementById('hPrec').textContent=ac.toFixed(0)+'m';
+      if(S.points.length>0){
+        const lp=S.points[S.points.length-1];
+        document.getElementById('gDist').textContent=fmtD(haversine(lp.lat,lp.lng,la,lo));
+      }
+      document.getElementById('evGpsInfo').style.display='block';
+      document.getElementById('evGpsInfo').textContent=`📍 GPS: ${la.toFixed(6)}, ${lo.toFixed(6)} (±${ac.toFixed(0)}m)`;
+    },
+    err=>{
+      let msg='';
+      if(err.code===1)msg='Permissão de localização negada. Verifique as configurações do Chrome.';
+      else if(err.code===2)msg='Posição indisponível. Aguarde o sinal GPS.';
+      else if(err.code===3)msg='Tempo esgotado. Tente novamente em campo aberto.';
+      else msg=err.message;
+      errMsg.textContent=msg;
+      errBox.style.display='block';
+      document.getElementById('gLat').textContent='Erro';
+    },
+    {enableHighAccuracy:true,timeout:30000,maximumAge:2000}
+  );
+}
+
+function stopGPS(){
+  if(S.watcher!=null)navigator.geolocation.clearWatch(S.watcher);
+  S.watcher=null;
+  document.getElementById('btnOn').disabled=false;
+  document.getElementById('btnOff').disabled=true;
+  const ind=document.getElementById('gpsIndicator');
+  ind.textContent='GPS OFF';ind.classList.remove('on');
+}
+
+function haversine(la1,lo1,la2,lo2){
+  const R=6371000,dL=(la2-la1)*Math.PI/180,dl=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dl/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function fmtD(m){return m>=1000?(m/1000).toFixed(2)+' km':m.toFixed(1)+' m';}
+
+// ══════════ TOGGLES ══════════
+document.getElementById('pTr').addEventListener('change',e=>{document.getElementById('trDiv').style.display=e.target.checked?'block':'none';});
+document.getElementById('pChave').addEventListener('change',e=>{document.getElementById('chDiv').style.display=e.target.checked?'block':'none';});
+document.getElementById('pEstMT').addEventListener('change',e=>{document.getElementById('estMTOutroDiv').style.display=e.target.value==='__outro__'?'block':'none';});
+document.getElementById('pEstBT').addEventListener('change',e=>{document.getElementById('estBTOutroDiv').style.display=e.target.value==='__outro__'?'block':'none';});
+document.getElementById('pCaboMT').addEventListener('change',e=>{document.getElementById('caboMTOutroDiv').style.display=e.target.value==='__outro__'?'block':'none';});
+document.getElementById('pCaboBT').addEventListener('change',e=>{document.getElementById('caboBTOutroDiv').style.display=e.target.value==='__outro__'?'block':'none';});
+function resolveField(selId,outroId){
+  const sel=document.getElementById(selId).value;
+  if(sel==='__outro__'){const v=document.getElementById(outroId).value.trim();return v;}
+  return sel;
+}
+
+// ══════════ ADD POINT ══════════
+function addPoint(){
+  const nome=document.getElementById('pNome').value.trim()||('P'+(S.points.length+1));
+  let lat,lng;
+  if(S.pos){
+    lat=S.pos.coords.latitude;lng=S.pos.coords.longitude;
+    document.getElementById('gpsWarn').style.display='none';
+  } else {
+    lat=-25.4284+(S.points.length*0.00012);
+    lng=-49.2733+(S.points.length*0.00018);
+    document.getElementById('gpsWarn').style.display='block';
+  }
+  const distFromPrev=S.points.length>0?haversine(S.points[S.points.length-1].lat,S.points[S.points.length-1].lng,lat,lng):null;
+  S.points.push({
+    id:Date.now(),nome,lat,lng,distFromPrev,
+    poste:document.getElementById('pPoste').value,
+    situacao:document.getElementById('pSit').value,
+    aterramento:document.getElementById('pAterr').value,
+    transformador:document.getElementById('pTr').checked,
+    trTipo:document.getElementById('pTrTipo').value,
+    trPotencia:document.getElementById('pTrPot').value,
+    trTensao:document.getElementById('pTrTensao').value,
+    chave:document.getElementById('pChave').checked,
+    tipoChave:document.getElementById('pTipoChave').value,
+    estMT:resolveField('pEstMT','pEstMTOutro'),
+    caboMT:resolveField('pCaboMT','pCaboMTOutro'),
+    caboMTSit:document.getElementById('pCaboMTSit').value,
+    redeMT:document.getElementById('pRedeMT').value,
+    trechoMT:document.getElementById('pTrechoMT').value,
+    estBT:resolveField('pEstBT','pEstBTOutro'),
+    caboBT:resolveField('pCaboBT','pCaboBTOutro'),
+    caboBTSit:document.getElementById('pCaboBTSit').value,
+    redeBT:document.getElementById('pRedeBT').value,
+    obs:document.getElementById('pObs').value.trim(),
+    ts:new Date().toLocaleString('pt-BR')
+  });
+  document.getElementById('pNome').value='';
+  document.getElementById('pObs').value='';
+  document.getElementById('pTr').checked=false;document.getElementById('trDiv').style.display='none';
+  document.getElementById('pChave').checked=false;document.getElementById('chDiv').style.display='none';
+  document.getElementById('pEstMTOutro').value='';document.getElementById('estMTOutroDiv').style.display='none';
+  document.getElementById('pEstBTOutro').value='';document.getElementById('estBTOutroDiv').style.display='none';
+  document.getElementById('pCaboMTOutro').value='';document.getElementById('caboMTOutroDiv').style.display='none';
+  document.getElementById('pCaboBTOutro').value='';document.getElementById('caboBTOutroDiv').style.display='none';
+  document.getElementById('gNext').textContent='P'+(S.points.length+1);
+  renderPoints();drawMap();updateStats();autoSave();
+}
+
+function trTipoLabel(v){return {mono:'Monofásico',bi:'Bifásico',tri:'Trifásico',religador:'Religador (BRT)'}[v]||'';}
+
+function renderPoints(){
+  const el=document.getElementById('pointsList');
+  document.getElementById('countBadge').textContent=S.points.length;
+  if(!S.points.length){el.innerHTML='<p style="color:var(--g400);font-size:13px">Nenhum ponto adicionado ainda.</p>';renderMateriais();return;}
+  let total=0;
+  el.innerHTML=S.points.map((p,i)=>{
+    let tags='';
+    if(p.estMT)tags+=`<span class="tag tag-mt">${p.estMT}</span>`;
+    if(p.caboMT)tags+=`<span class="tag tag-mt">${p.caboMT} (${p.caboMTSit||'existente'})</span>`;
+    if(p.estBT)tags+=`<span class="tag tag-bt">${p.estBT}</span>`;
+    if(p.caboBT)tags+=`<span class="tag tag-bt">${p.caboBT} (${p.caboBTSit||'existente'})</span>`;
+    if(p.transformador)tags+=`<span class="tag tag-tr">${trTipoLabel(p.trTipo)} ${p.trPotencia}</span>`;
+    if(p.chave)tags+=`<span class="tag tag-ch">${p.tipoChave}</span>`;
+    tags+=`<span class="tag ${p.situacao==='existente'?'tag-ex':'tag-new'}">${p.situacao}</span>`;
+    let dist='';
+    if(p.distFromPrev!==null){total+=p.distFromPrev;dist=`<span class="dist-badge">📏 ${fmtD(p.distFromPrev)}</span>`;}
+    return `<div class="point-item">
+      <h3>${p.nome} ${dist}</h3>
+      <p>📍 ${p.lat.toFixed(7)}, ${p.lng.toFixed(7)}</p>
+      ${p.poste?`<p>🪵 Poste: ${p.poste} (${p.situacao})</p>`:''}
+      ${p.caboMT?`<p>🔴 MT: ${p.caboMT}${p.estMT?' | Estr.: '+p.estMT:''} — ${p.caboMTSit==='novo'?'cabo novo (tracejado vermelho)':'cabo existente (tracejado preto)'}</p>`:''}
+      ${p.caboBT?`<p>${p.caboBTSit==='novo'?'🟢':'🔵'} BT: ${p.caboBT}${p.estBT?' | Estr.: '+p.estBT:''} — ${p.caboBTSit==='novo'?'cabo novo (linha verde)':'cabo existente (linha azul)'}</p>`:''}
+      ${p.transformador?`<p>🟣 ${trTipoLabel(p.trTipo)} — ${p.trPotencia} — ${p.trTensao}</p>`:''}
+      ${p.chave?`<p>🟡 Chave: ${p.tipoChave}</p>`:''}
+      ${p.obs?`<p>📝 ${p.obs}</p>`:''}
+      <div class="tags">${tags}</div>
+      <button class="btn btn-red btn-sm" style="margin-top:7px" onclick="removePoint(${p.id})">🗑️ Remover</button>
+    </div>`;
+  }).join('');
+  document.getElementById('hDist').textContent=fmtD(total);
+  renderMateriais();
+}
+
+// ══════════ RESUMO DE MATERIAIS ══════════
+function redeMult(v){return {mono:1,bi:2,tri:3}[v]||1;}
+function redeLabel(v){return {mono:'Monofásica',bi:'Bifásica',tri:'Trifásica'}[v]||'';}
+
+function computeMateriais(){
+  const m={
+    postesMT:0,postesBT:0,
+    postesPorTipo:{}, // "tipo|situacao" -> count
+    caboMT:{}, // "cabo|situacao|rede" -> {m2:metros_multiplicados, mReal:metros_vao, mult}
+    caboBT:{},
+    caboMTTotal:0,caboBTTotal:0,
+    transformadores:{}, // tipo -> count
+    chaves:{}, // tipo -> count
+    estMT:{},estBT:{} // estrutura -> count
+  };
+  S.points.forEach(p=>{
+    if(p.poste){
+      if(p.estMT||p.caboMT)m.postesMT++;
+      if(p.estBT||p.caboBT)m.postesBT++;
+      const k=p.poste+'|'+p.situacao;
+      m.postesPorTipo[k]=(m.postesPorTipo[k]||0)+1;
+    }
+    if(p.estMT)m.estMT[p.estMT]=(m.estMT[p.estMT]||0)+1;
+    if(p.estBT)m.estBT[p.estBT]=(m.estBT[p.estBT]||0)+1;
+    if(p.transformador){
+      const tk=trTipoLabel(p.trTipo)+' '+(p.trPotencia||'');
+      m.transformadores[tk]=(m.transformadores[tk]||0)+1;
+    }
+    if(p.chave){
+      m.chaves[p.tipoChave]=(m.chaves[p.tipoChave]||0)+1;
+    }
+    // metragem: aplicada ao trecho (vão) que chega neste ponto, conforme o tipo de trecho selecionado
+    const vao=p.distFromPrev||0;
+    if(vao>0&&p.trechoMT==='mt'&&p.caboMT){
+      const mult=redeMult(p.redeMT);
+      const key=p.caboMT+'|'+(p.caboMTSit||'existente')+'|'+redeLabel(p.redeMT);
+      if(!m.caboMT[key])m.caboMT[key]={vao:0,total:0,mult};
+      m.caboMT[key].vao+=vao; m.caboMT[key].total+=vao*mult;
+      m.caboMTTotal+=vao*mult;
+    }
+    if(vao>0&&p.trechoMT==='bt'&&p.caboBT){
+      const mult=redeMult(p.redeBT);
+      const key=p.caboBT+'|'+(p.caboBTSit||'existente')+'|'+redeLabel(p.redeBT);
+      if(!m.caboBT[key])m.caboBT[key]={vao:0,total:0,mult};
+      m.caboBT[key].vao+=vao; m.caboBT[key].total+=vao*mult;
+      m.caboBTTotal+=vao*mult;
+    }
+  });
+  return m;
+}
+
+function renderMateriais(){
+  const el=document.getElementById('matResumo');
+  if(!el)return;
+  if(!S.points.length){el.innerHTML='<p style="color:var(--g400);font-size:13px">Nenhum ponto adicionado ainda.</p>';return;}
+  const m=computeMateriais();
+  let html='';
+  html+=`<div class="stats" style="margin-bottom:9px">
+    <div class="stat"><div class="stat-val">${m.postesMT}</div><div class="stat-label">Postes MT</div></div>
+    <div class="stat"><div class="stat-val">${m.postesBT}</div><div class="stat-label">Postes BT</div></div>
+    <div class="stat"><div class="stat-val">${fmtD(m.caboMTTotal)}</div><div class="stat-label">Cabo MT (total)</div></div>
+    <div class="stat"><div class="stat-val">${fmtD(m.caboBTTotal)}</div><div class="stat-label">Cabo BT (total)</div></div>
+  </div>`;
+
+  const posteRows=Object.entries(m.postesPorTipo).map(([k,c])=>{const[tipo,sit]=k.split('|');return`<tr><td>${tipo}</td><td>${sit}</td><td>${c}</td></tr>`;}).join('');
+  if(posteRows)html+=`<p style="font-size:12px;font-weight:700;color:var(--g600);margin-top:6px">🪵 Postes</p>
+    <table style="width:100%;font-size:11.5px;border-collapse:collapse;margin-top:3px">
+    <tr style="color:var(--g400);text-align:left"><th>Tipo</th><th>Situação</th><th>Qtd</th></tr>${posteRows}</table>`;
+
+  const mtRows=Object.entries(m.caboMT).map(([k,v])=>{const[cabo,sit,rede]=k.split('|');return`<tr><td>${cabo}</td><td>${sit}</td><td>${rede} (×${v.mult})</td><td>${fmtD(v.vao)}</td><td><b>${fmtD(v.total)}</b></td></tr>`;}).join('');
+  if(mtRows)html+=`<p style="font-size:12px;font-weight:700;color:var(--g600);margin-top:10px">🔴 Cabo MT</p>
+    <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:3px">
+    <tr style="color:var(--g400);text-align:left"><th>Cabo</th><th>Situação</th><th>Rede</th><th>Vão</th><th>Metragem</th></tr>${mtRows}</table>`;
+
+  const btRows=Object.entries(m.caboBT).map(([k,v])=>{const[cabo,sit,rede]=k.split('|');return`<tr><td>${cabo}</td><td>${sit}</td><td>${rede} (×${v.mult})</td><td>${fmtD(v.vao)}</td><td><b>${fmtD(v.total)}</b></td></tr>`;}).join('');
+  if(btRows)html+=`<p style="font-size:12px;font-weight:700;color:var(--g600);margin-top:10px">🟢 Cabo BT</p>
+    <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:3px">
+    <tr style="color:var(--g400);text-align:left"><th>Cabo</th><th>Situação</th><th>Rede</th><th>Vão</th><th>Metragem</th></tr>${btRows}</table>`;
+
+  const estMTRows=Object.entries(m.estMT).map(([k,c])=>`<span class="tag tag-mt" style="margin:2px">${k}: ${c}</span>`).join('');
+  const estBTRows=Object.entries(m.estBT).map(([k,c])=>`<span class="tag tag-bt" style="margin:2px">${k}: ${c}</span>`).join('');
+  if(estMTRows||estBTRows)html+=`<p style="font-size:12px;font-weight:700;color:var(--g600);margin-top:10px">🏗️ Estruturas</p><div>${estMTRows}${estBTRows}</div>`;
+
+  const trRows=Object.entries(m.transformadores).map(([k,c])=>`<span class="tag tag-tr" style="margin:2px">${k}: ${c}</span>`).join('');
+  if(trRows)html+=`<p style="font-size:12px;font-weight:700;color:var(--g600);margin-top:10px">🟣 Transformadores / Religadores</p><div>${trRows}</div>`;
+
+  const chRows=Object.entries(m.chaves).map(([k,c])=>`<span class="tag tag-ch" style="margin:2px">${k}: ${c}</span>`).join('');
+  if(chRows)html+=`<p style="font-size:12px;font-weight:700;color:var(--g600);margin-top:10px">🟡 Chaves</p><div>${chRows}</div>`;
+
+  el.innerHTML=html;
+}
+
+function removePoint(id){S.points=S.points.filter(p=>p.id!==id);renderPoints();drawMap();updateStats();autoSave();}
+function limparTudo(){if(!confirm('Limpar todos os pontos do mapa?'))return;S.points=[];renderPoints();drawMap();updateStats();}
+
+// ══════════ MAP ══════════
+function drawMap(){
+  const cv=document.getElementById('mapCanvas');
+  const ctx=cv.getContext('2d');
+  const W=cv.offsetWidth||360;cv.width=W;cv.height=290;
+  drawTechnicalMap(ctx,W,290,true);
+}
+
+function mapTransform(pts,W,H,pad){
+  const lats=pts.map(p=>p.lat),lngs=pts.map(p=>p.lng);
+  const minLa=Math.min(...lats),maxLa=Math.max(...lats),minLo=Math.min(...lngs),maxLo=Math.max(...lngs);
+  const rX=(maxLo-minLo)===0?1:(W-pad*2)/(maxLo-minLo);
+  const rY=(maxLa-minLa)===0?1:(H-pad*2)/(maxLa-minLa);
+  const sc=Math.min(rX,rY);
+  const ox=(W-pad*2-(maxLo-minLo)*sc)/2;
+  const oy=(H-pad*2-(maxLa-minLa)*sc)/2;
+  return {
+    x:lo=>pad+(lo-minLo)*sc+ox,
+    y:la=>H-pad-(la-minLa)*sc-oy
+  };
+}
+
+function drawPoleSymbol(ctx,x,y,situacao,size=12){
+  ctx.save();
+  ctx.fillStyle='#fff';
+  ctx.lineWidth=2;
+  ctx.strokeStyle=situacao==='existente'?'#000000':'#ff0000';
+  ctx.fillRect(x-size/2,y-size/2,size,size);
+  ctx.strokeRect(x-size/2,y-size/2,size,size);
+  ctx.restore();
+}
+
+function drawTechnicalMap(ctx,W,H,showLegend=true){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+
+  const pts=S.points;
+  if(!pts.length){
+    ctx.strokeStyle='#000';ctx.lineWidth=1.2;ctx.strokeRect(6,6,W-12,H-12);
+    ctx.fillStyle='#9ca3af';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('Adicione pontos para visualizar o traçado',W/2,H/2);
+    return;
+  }
+
+  const pad=Math.max(32,Math.min(52,W*.08));
+  const tr=mapTransform(pts,W,H,pad);
+
+  // linhas da rede: MT tracejada (vermelho=novo/preto=existente), BT contínua (verde=novo/azul=existente)
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1],b=pts[i];
+    const x1=tr.x(a.lng),y1=tr.y(a.lat),x2=tr.x(b.lng),y2=tr.y(b.lat);
+    const isBT=b.trechoMT==='bt';
+    let strokeColor,dash;
+    if(isBT){
+      strokeColor=b.caboBTSit==='novo'?'#16a34a':'#1d4ed8'; // verde novo / azul existente
+      dash=[];
+    } else {
+      strokeColor=b.caboMTSit==='novo'?'#dc2626':'#000000'; // vermelho novo / preto existente
+      dash=[7,4];
+    }
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+    ctx.strokeStyle=strokeColor;
+    ctx.lineWidth=isBT?1.3:1.2;
+    ctx.setLineDash(dash);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // seta de sentido do trecho
+    const ang=Math.atan2(y2-y1,x2-x1), mx=(x1+x2)/2, my=(y1+y2)/2;
+    ctx.save();ctx.translate(mx,my);ctx.rotate(ang);
+    ctx.fillStyle=strokeColor;
+    ctx.beginPath();ctx.moveTo(7,0);ctx.lineTo(-5,-4);ctx.lineTo(-5,4);ctx.closePath();ctx.fill();
+    ctx.restore();
+
+    if(b.distFromPrev!==null&&b.distFromPrev>0){
+      const txt=fmtD(b.distFromPrev);
+      ctx.save();ctx.translate(mx,my-6);ctx.rotate(ang);
+      ctx.fillStyle='#fff';ctx.strokeStyle='#fff';ctx.lineWidth=4;ctx.strokeText(txt,0,0);
+      ctx.fillStyle='#111';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,0,0);
+      ctx.restore();
+    }
+  }
+
+  // símbolos e textos
+  pts.forEach((p,i)=>{
+    const x=tr.x(p.lng),y=tr.y(p.lat);
+    drawPoleSymbol(ctx,x,y,p.situacao,12);
+
+    // derivação/ramais curtos pretos para aparência CAD
+    ctx.strokeStyle='#111';ctx.lineWidth=.8;
+    if(p.estBT||p.caboBT||p.chave){
+      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+18,y-18);ctx.stroke();
+      ctx.fillStyle='#000';ctx.beginPath();ctx.arc(x+20,y-20,3,0,Math.PI*2);ctx.fill();
+    }
+    if(p.transformador){
+      ctx.strokeStyle='#ff00cc';ctx.fillStyle='#ff00cc';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.arc(x+15,y-12,7,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x+10,y-17);ctx.lineTo(x+20,y-7);ctx.stroke();
+    }
+
+    // etiquetas: novo/transformador/estruturas em magenta; existente em preto
+    const isNew=p.situacao!=='existente';
+    ctx.font='bold 10px Arial, sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillStyle=isNew||p.transformador?'#ff00cc':'#111111';
+    let lines=[p.nome||('P'+(i+1))];
+    if(p.transformador)lines.push('DT '+String(p.trPotencia||'').replace(' kVA',''));
+    if(p.poste)lines.push(p.poste);
+    const est=[p.estMT,p.estBT].filter(Boolean).join(' '); if(est)lines.push(est);
+    lines.slice(0,4).forEach((t,k)=>ctx.fillText(String(t),x+9,y-6+k*11));
+  });
+
+  // legenda
+  if(showLegend){
+    const lw=140,lh=94,lx=W-lw-10,ly=H-lh-10;
+    ctx.fillStyle='rgba(255,255,255,.95)';ctx.strokeStyle='#000';ctx.lineWidth=1;ctx.fillRect(lx,ly,lw,lh);ctx.strokeRect(lx,ly,lw,lh);
+    ctx.fillStyle='#000';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText('LEGENDA',lx+lw/2,ly+8);
+    drawPoleSymbol(ctx,lx+16,ly+20,'novo',11);ctx.fillStyle='#111';ctx.font='9px Arial';ctx.textAlign='left';ctx.fillText('POSTE NOVO',lx+28,ly+16);
+    drawPoleSymbol(ctx,lx+16,ly+34,'existente',11);ctx.fillStyle='#111';ctx.fillText('POSTE EXISTENTE',lx+28,ly+30);
+    const lineY=[46,58,70,82];
+    ctx.save();ctx.setLineDash([5,3]);
+    ctx.strokeStyle='#dc2626';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(lx+8,ly+lineY[0]);ctx.lineTo(lx+24,ly+lineY[0]);ctx.stroke();
+    ctx.fillStyle='#111';ctx.fillText('MT NOVO (tracejado)',lx+28,ly+lineY[0]+3);
+    ctx.strokeStyle='#000000';ctx.beginPath();ctx.moveTo(lx+8,ly+lineY[1]);ctx.lineTo(lx+24,ly+lineY[1]);ctx.stroke();
+    ctx.fillText('MT EXISTENTE (tracejado)',lx+28,ly+lineY[1]+3);
+    ctx.restore();
+    ctx.setLineDash([]);
+    ctx.strokeStyle='#16a34a';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(lx+8,ly+lineY[2]);ctx.lineTo(lx+24,ly+lineY[2]);ctx.stroke();
+    ctx.fillText('BT NOVO (contínuo)',lx+28,ly+lineY[2]+3);
+    ctx.strokeStyle='#1d4ed8';ctx.beginPath();ctx.moveTo(lx+8,ly+lineY[3]);ctx.lineTo(lx+24,ly+lineY[3]);ctx.stroke();
+    ctx.fillText('BT EXISTENTE (contínuo)',lx+28,ly+lineY[3]+3);
+  }
+}
+
+// ══════════ MAPA DE RUAS (OpenStreetMap) ══════════
+let streetMap=null,streetMarkers=[];
+function loadStreetMap(){
+  if(!S.points.length){alert('Adicione pontos na aba GPS antes de carregar o mapa de ruas.');return;}
+  if(typeof L==='undefined'){alert('Não foi possível carregar a biblioteca de mapas. Verifique sua conexão com a internet e tente novamente.');return;}
+  const el=document.getElementById('streetMapEl');
+  if(streetMap){streetMap.remove();streetMap=null;}
+  const lats=S.points.map(p=>p.lat),lngs=S.points.map(p=>p.lng);
+  const centerLat=lats.reduce((a,b)=>a+b,0)/lats.length;
+  const centerLng=lngs.reduce((a,b)=>a+b,0)/lngs.length;
+  streetMap=L.map(el).setView([centerLat,centerLng],17);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OpenStreetMap contributors &copy; CARTO',
+    subdomains:'abcd',maxZoom:20,crossOrigin:true
+  }).addTo(streetMap);
+  streetMarkers=[];
+  S.points.forEach(p=>{
+    const color=p.situacao==='existente'?'#000000':'#dc2626';
+    const marker=L.circleMarker([p.lat,p.lng],{radius:7,color:'#fff',weight:1.5,fillColor:color,fillOpacity:1}).addTo(streetMap);
+    marker.bindPopup(`<b>${p.nome}</b><br>${p.poste||'--'}<br>${p.situacao==='existente'?'Poste existente':'Poste novo'}`);
+    streetMarkers.push(marker);
+  });
+  if(S.points.length>1){
+    streetMap.fitBounds(L.latLngBounds(S.points.map(p=>[p.lat,p.lng])),{padding:[30,30]});
+  }
+  setTimeout(()=>streetMap.invalidateSize(),200);
+}
+
+async function exportStreetMapPDF(){
+  if(!streetMap){alert('Carregue o mapa de ruas primeiro.');return;}
+  if(typeof html2canvas==='undefined'){alert('Biblioteca de captura de mapa não carregada. Verifique a internet.');return;}
+  showStatus('⏳ Gerando PDF do mapa de ruas...','info');
+  try{
+    const el=document.getElementById('streetMapEl');
+    const canvas=await html2canvas(el,{useCORS:true,allowTaint:false});
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    const W=297,H=210,m=8;
+    doc.setFillColor(194,112,61);doc.rect(0,0,W,14,'F');
+    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
+    doc.text('MAPA DE RUAS — Localização das Estruturas',W/2,9,{align:'center'});
+    const imgW=W-m*2,imgH=imgW*(canvas.height/canvas.width);
+    const maxH=H-14-m*2;
+    const finalH=Math.min(imgH,maxH),finalW=finalH===imgH?imgW:imgW*(finalH/imgH);
+    doc.addImage(canvas.toDataURL('image/png'),'PNG',(W-finalW)/2,18,finalW,finalH);
+    doc.setTextColor(0);doc.setFont('helvetica','normal');doc.setFontSize(8);
+    doc.text('Projeto: '+(S.proj.projetoNum||'--')+'  |  '+(S.proj.cidade||''),m,H-4);
+    doc.text('RedeCalc Pro GPS — by Nick5188',W-m,H-4,{align:'right'});
+    const fname='mapa_ruas_'+(S.proj.projetoNum||'projeto')+'_'+Date.now()+'.pdf';
+    await shareOrDownload(doc.output('blob'),fname,'Mapa de Ruas');
+    showStatus('✅ Mapa de ruas exportado!','success');
+  }catch(err){
+    showStatus('❌ Erro ao gerar PDF do mapa: '+err.message,'error');
+  }
+}
+
+// ══════════ COMPARTILHAR / BAIXAR (arquivos usam a mesma opção para PDF e DOC) ══════════
+async function shareOrDownload(blob,filename,title){
+  if(navigator.canShare&&navigator.share){
+    try{
+      const file=new File([blob],filename,{type:blob.type});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:title||filename});
+        return true;
+      }
+    }catch(e){ /* usuário cancelou ou share indisponível: cai no download */ }
+  }
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  return false;
+}
+
+// ══════════ EXPORTAÇÃO WORD (.doc) ══════════
+function buildProjectWordHTML(){
+  const pr=S.proj;
+  const mat=computeMateriais();
+  const mapCanvasTmp=document.createElement('canvas');mapCanvasTmp.width=1000;mapCanvasTmp.height=650;
+  drawTechnicalMap(mapCanvasTmp.getContext('2d'),1000,650,true);
+  const mapImg=mapCanvasTmp.toDataURL('image/png');
+  const rowsHtml=S.points.map(p=>`<tr>
+    <td>${p.nome}</td><td>${p.lat.toFixed(7)}</td><td>${p.lng.toFixed(7)}</td>
+    <td>${p.poste||''}</td><td>${p.situacao}</td>
+    <td>${p.caboMT||''} ${p.caboMTSit?('('+p.caboMTSit+')'):''}</td>
+    <td>${p.caboBT||''} ${p.caboBTSit?('('+p.caboBTSit+')'):''}</td>
+    <td>${p.transformador?(trTipoLabel(p.trTipo)+' '+p.trPotencia):''}</td>
+    <td>${p.obs||''}</td>
+  </tr>`).join('');
+  const mtMatRows=Object.entries(mat.caboMT).map(([k,v])=>{const[cabo,sit,rede]=k.split('|');return`<tr><td>${cabo}</td><td>${sit}</td><td>${rede} (×${v.mult})</td><td>${fmtD(v.vao)}</td><td>${fmtD(v.total)}</td></tr>`;}).join('');
+  const btMatRows=Object.entries(mat.caboBT).map(([k,v])=>{const[cabo,sit,rede]=k.split('|');return`<tr><td>${cabo}</td><td>${sit}</td><td>${rede} (×${v.mult})</td><td>${fmtD(v.vao)}</td><td>${fmtD(v.total)}</td></tr>`;}).join('');
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+  <head><meta charset="utf-8"><title>Projeto ${pr.projetoNum||''}</title>
+  <style>
+    body{font-family:Calibri,Arial,sans-serif;font-size:12px;color:#111;}
+    h1{color:#c2703d;font-size:20px;} h2{font-size:14px;color:#4b5563;border-bottom:1px solid #ccc;padding-bottom:3px;}
+    table{border-collapse:collapse;width:100%;font-size:10px;margin-top:8px;}
+    td,th{border:1px solid #999;padding:4px 6px;text-align:left;}
+    th{background:#c2703d;color:#fff;}
+    img{max-width:100%;margin-top:10px;}
+    .footer{margin-top:20px;font-size:10px;color:#888;}
+  </style></head>
+  <body>
+    <h1>⚡ RedeCalc Pro GPS — Prancha do Projeto</h1>
+    <h2>Dados do Projeto</h2>
+    <table>
+      <tr><th>Empresa</th><td>${pr.empresa||''}</td><th>Cidade</th><td>${pr.cidade||''}</td></tr>
+      <tr><th>Obra</th><td colspan="3">${pr.obra||''}</td></tr>
+      <tr><th>Interessado</th><td>${pr.interessado||''}</td><th>Referência</th><td>${pr.referencia||''}</td></tr>
+      <tr><th>Projeto Nº</th><td>${pr.projetoNum||''}</td><th>Alimentador</th><td>${pr.alimentador||''}</td></tr>
+      <tr><th>Projetista</th><td>${pr.projetista||''}</td><th>Aprovação</th><td>${pr.aprovacao||''}</td></tr>
+      <tr><th>Escala</th><td>${pr.escala||''}</td><th>Folha</th><td>${pr.folha||''}</td></tr>
+    </table>
+    <h2>Mapa / Traçado do Projeto</h2>
+    <img src="${mapImg}">
+    <h2>Resumo de Materiais</h2>
+    <table>
+      <tr><th>Postes MT</th><td>${mat.postesMT}</td><th>Postes BT</th><td>${mat.postesBT}</td></tr>
+      <tr><th>Cabo MT total (com mult. de fases)</th><td>${fmtD(mat.caboMTTotal)}</td><th>Cabo BT total (com mult. de fases)</th><td>${fmtD(mat.caboBTTotal)}</td></tr>
+    </table>
+    ${mtMatRows?`<table><tr><th>Cabo MT</th><th>Situação</th><th>Rede</th><th>Vão</th><th>Metragem</th></tr>${mtMatRows}</table>`:''}
+    ${btMatRows?`<table><tr><th>Cabo BT</th><th>Situação</th><th>Rede</th><th>Vão</th><th>Metragem</th></tr>${btMatRows}</table>`:''}
+    <h2>Pontos do Projeto</h2>
+    <table>
+      <tr><th>Nome</th><th>Lat</th><th>Lng</th><th>Poste</th><th>Situação</th><th>Cabo MT</th><th>Cabo BT</th><th>Transformador</th><th>Obs.</th></tr>
+      ${rowsHtml||'<tr><td colspan="9">Nenhum ponto adicionado</td></tr>'}
+    </table>
+    <p class="footer">Gerado por RedeCalc Pro GPS — by Nick5188 — ${new Date().toLocaleString('pt-BR')}</p>
+  </body></html>`;
+}
+async function exportProjectDOC(){
+  salvarProjeto();
+  const html=buildProjectWordHTML();
+  const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+  const fname='projeto_'+(S.proj.projetoNum||'projeto')+'_'+Date.now()+'.doc';
+  await shareOrDownload(blob,fname,'Projeto RedeCalc');
+  showStatus('✅ Documento Word do projeto gerado!','success');
+}
+async function exportStreetMapDOC(){
+  if(!streetMap){alert('Carregue o mapa de ruas primeiro, na aba Ruas.');return;}
+  if(typeof html2canvas==='undefined'){alert('Biblioteca de captura não carregada. Verifique a internet.');return;}
+  showStatus('⏳ Gerando Word do mapa de ruas...','info');
+  try{
+    const el=document.getElementById('streetMapEl');
+    const canvas=await html2canvas(el,{useCORS:true,allowTaint:false});
+    const img=canvas.toDataURL('image/png');
+    const html=`<html><head><meta charset="utf-8"><title>Mapa de Ruas</title>
+    <style>body{font-family:Calibri,Arial,sans-serif;} h1{color:#c2703d;} img{max-width:100%;margin-top:10px;} .footer{margin-top:16px;font-size:10px;color:#888;}</style>
+    </head><body>
+      <h1>🗺️ RedeCalc Pro GPS — Mapa de Ruas</h1>
+      <p>Projeto: ${S.proj.projetoNum||'--'} | Cidade: ${S.proj.cidade||'--'}</p>
+      <img src="${img}">
+      <p class="footer">Gerado por RedeCalc Pro GPS — by Nick5188 — ${new Date().toLocaleString('pt-BR')}</p>
+    </body></html>`;
+    const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+    const fname='mapa_ruas_'+(S.proj.projetoNum||'projeto')+'_'+Date.now()+'.doc';
+    await shareOrDownload(blob,fname,'Mapa de Ruas');
+    showStatus('✅ Documento Word do mapa de ruas gerado!','success');
+  }catch(err){
+    showStatus('❌ Erro ao gerar Word do mapa: '+err.message,'error');
+  }
+}
+
+// ══════════ PROJECT ══════════
+function salvarProjeto(){
+  S.proj={
+    empresa:document.getElementById('empresa').value,
+    obra:document.getElementById('obra').value,
+    interessado:document.getElementById('interessado').value,
+    cidade:document.getElementById('cidade').value,
+    referencia:document.getElementById('referencia').value,
+    projetoNum:document.getElementById('projetoNum').value,
+    alimentador:document.getElementById('alimentador').value,
+    folha:document.getElementById('folha').value||'001',
+    projetista:document.getElementById('projetista').value,
+    aprovacao:document.getElementById('aprovacao').value,
+    dataProjeto:document.getElementById('dataProjeto').value,
+    escala:document.getElementById('escala').value,
+    sigNome:S.proj.sigNome||'',
+    sigCargo:S.proj.sigCargo||''
+  };
+  showStatus('✅ Dados salvos!','success');
+  autoSave();
+}
+
+// ══════════ SIGNATURE ══════════
+(function(){
+  const cv=document.getElementById('sigCanvas'),ctx=cv.getContext('2d');
+  function pos(e){const r=cv.getBoundingClientRect();const src=e.touches?e.touches[0]:e;return{x:src.clientX-r.left,y:src.clientY-r.top};}
+  cv.addEventListener('mousedown',e=>{S.sigDrawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+  cv.addEventListener('mousemove',e=>{if(!S.sigDrawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle='#1f2937';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();});
+  cv.addEventListener('mouseup',()=>S.sigDrawing=false);
+  cv.addEventListener('mouseleave',()=>S.sigDrawing=false);
+  cv.addEventListener('touchstart',e=>{e.preventDefault();S.sigDrawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});
+  cv.addEventListener('touchmove',e=>{e.preventDefault();if(!S.sigDrawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle='#1f2937';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();},{passive:false});
+  cv.addEventListener('touchend',()=>S.sigDrawing=false);
+})();
+function clearSig(){const c=document.getElementById('sigCanvas');c.getContext('2d').clearRect(0,0,c.width,c.height);S.sig=null;autoSave();}
+function saveSig(){
+  S.sig=document.getElementById('sigCanvas').toDataURL('image/png');
+  S.proj.sigNome=document.getElementById('sigNome').value;
+  S.proj.sigCargo=document.getElementById('sigCargo').value;
+  showStatus('✅ Assinatura salva!','success');
+  autoSave();
+}
+
+// ══════════ EVIDENCE ══════════
+let evPhoto=null;
+
+// Lê a tag EXIF de orientação (0x0112) direto do JPEG, sem bibliotecas externas.
+function getExifOrientation(arrayBuffer){
+  const view=new DataView(arrayBuffer);
+  if(view.getUint16(0,false)!==0xFFD8)return 1; // não é JPEG
+  const length=view.byteLength;
+  let offset=2;
+  while(offset<length){
+    const marker=view.getUint16(offset,false);
+    offset+=2;
+    if(marker===0xFFE1){
+      if(view.getUint32(offset+2,false)!==0x45786966)return 1; // "Exif"
+      const little=view.getUint16(offset+8,false)===0x4949;
+      const tiffOffset=offset+8;
+      const firstIFDOffset=view.getUint32(tiffOffset+4,little);
+      const dirStart=tiffOffset+firstIFDOffset;
+      const entries=view.getUint16(dirStart,little);
+      for(let i=0;i<entries;i++){
+        const entryOffset=dirStart+2+i*12;
+        if(view.getUint16(entryOffset,little)===0x0112){
+          return view.getUint16(entryOffset+8,little);
+        }
+      }
+      return 1;
+    } else if((marker&0xFF00)!==0xFF00){
+      break;
+    } else {
+      offset+=view.getUint16(offset,false);
+    }
+  }
+  return 1;
+}
+
+// Redesenha a imagem em um canvas já corrigida, eliminando a rotação indevida das fotos.
+function fixImageOrientation(file,callback){
+  const bufReader=new FileReader();
+  bufReader.onload=function(bufEv){
+    let orientation=1;
+    try{orientation=getExifOrientation(bufEv.target.result);}catch(e){orientation=1;}
+    const imgReader=new FileReader();
+    imgReader.onload=function(imgEv){
+      const img=new Image();
+      img.onload=function(){
+        const w=img.width,h=img.height;
+        const canvas=document.createElement('canvas');
+        const ctx=canvas.getContext('2d');
+        if(orientation>=5&&orientation<=8){canvas.width=h;canvas.height=w;}
+        else{canvas.width=w;canvas.height=h;}
+        switch(orientation){
+          case 2: ctx.transform(-1,0,0,1,w,0); break;
+          case 3: ctx.transform(-1,0,0,-1,w,h); break;
+          case 4: ctx.transform(1,0,0,-1,0,h); break;
+          case 5: ctx.transform(0,1,1,0,0,0); break;
+          case 6: ctx.transform(0,1,-1,0,h,0); break;
+          case 7: ctx.transform(0,-1,-1,0,h,w); break;
+          case 8: ctx.transform(0,-1,1,0,0,w); break;
+          default: break;
+        }
+        ctx.drawImage(img,0,0,w,h);
+        callback(canvas.toDataURL('image/jpeg',0.9));
+      };
+      img.src=imgEv.target.result;
+    };
+    imgReader.readAsDataURL(file);
+  };
+  bufReader.readAsArrayBuffer(file);
+}
+
+document.getElementById('evFoto').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  document.getElementById('evPreview').innerHTML=`<p style="font-size:12px;color:var(--g400)">Processando foto...</p>`;
+  fixImageOrientation(f,corrected=>{
+    evPhoto=corrected;
+    document.getElementById('evPreview').innerHTML=`<img src="${evPhoto}" style="width:100%;border-radius:8px;margin-top:5px;max-height:180px;object-fit:cover">`;
+  });
+});
+function saveEvidence(){
+  const c=document.getElementById('evComent').value.trim();
+  const r=document.getElementById('evResp').value.trim();
+  if(!c&&!evPhoto){alert('Adicione uma foto ou comentário.');return;}
+  S.evidences.push({
+    id:Date.now(),foto:evPhoto,comentario:c,responsavel:r,
+    lat:S.pos?S.pos.coords.latitude:null,
+    lng:S.pos?S.pos.coords.longitude:null,
+    acc:S.pos?S.pos.coords.accuracy:null,
+    ts:new Date().toLocaleString('pt-BR')
+  });
+  evPhoto=null;
+  document.getElementById('evFoto').value='';
+  document.getElementById('evPreview').innerHTML='';
+  document.getElementById('evComent').value='';
+  document.getElementById('evResp').value='';
+  renderEvidences();updateStats();
+  showStatus('✅ Evidência salva!','success');
+  autoSave();
+}
+function renderEvidences(){
+  const el=document.getElementById('evList');
+  document.getElementById('evCount').textContent=S.evidences.length;
+  if(!S.evidences.length){el.innerHTML='<p style="color:var(--g400);font-size:13px">Nenhuma evidência ainda.</p>';return;}
+  el.innerHTML=S.evidences.map((ev,i)=>`
+    <div class="ev-item">
+      ${ev.foto?`<img class="ev-img" src="${ev.foto}">`:''}
+      <div class="ev-body">
+        <p><strong>Evidência ${i+1}</strong>${ev.responsavel?' · '+ev.responsavel:''}</p>
+        ${ev.comentario?`<p style="margin-top:4px">${ev.comentario}</p>`:''}
+        ${ev.lat?`<p class="ev-meta">📍 ${ev.lat.toFixed(6)}, ${ev.lng.toFixed(6)} ±${ev.acc?.toFixed(0)}m</p>`:''}
+        <p class="ev-meta">🕐 ${ev.ts}</p>
+        <button class="btn btn-red btn-sm" style="margin-top:6px" onclick="removeEv(${ev.id})">🗑️ Remover</button>
+      </div>
+    </div>`).join('');
+}
+function removeEv(id){S.evidences=S.evidences.filter(e=>e.id!==id);renderEvidences();updateStats();}
+
+// ══════════ STATS ══════════
+function updateStats(){
+  document.getElementById('hPontos').textContent=S.points.length;
+  document.getElementById('hEvidencias').textContent=S.evidences.length;
+  let t=0;S.points.forEach(p=>{if(p.distFromPrev)t+=p.distFromPrev;});
+  document.getElementById('hDist').textContent=fmtD(t);
+}
+
+// ══════════ PDF PRANCHA TÉCNICA — MODELO EQUATORIAL ══════════
+async function exportProjectPDF(){
+  salvarProjeto();
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,H=297,m=5;
+  const pr=S.proj;
+
+  // borda geral da prancha
+  doc.setDrawColor(0);doc.setLineWidth(0.7);doc.rect(m,m,W-m*2,H-m*2);
+
+  // área do desenho
+  const titleH=0;
+  const mapX=m+2,mapY=m+2,mapW=W-m*2-4,mapH=188;
+  const tmp=document.createElement('canvas');
+  tmp.width=1400;tmp.height=1600;
+  const tctx=tmp.getContext('2d');
+  drawTechnicalMap(tctx,tmp.width,tmp.height,false);
+  doc.addImage(tmp.toDataURL('image/png'),'PNG',mapX,mapY,mapW,mapH);
+  doc.setDrawColor(0);doc.setLineWidth(0.4);doc.rect(mapX,mapY,mapW,mapH);
+
+  // legenda no PDF
+  const lx=W-52,ly=mapY+mapH-46;
+  doc.setFillColor(255,255,255);doc.rect(lx,ly,43,40,'FD');
+  doc.setFont('helvetica','bold');doc.setFontSize(6);doc.text('LEGENDA',lx+21.5,ly+4,{align:'center'});
+  doc.setDrawColor(255,0,0);doc.setLineWidth(.5);doc.rect(lx+3,ly+7,4,4);
+  doc.setTextColor(0);doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.text('POSTE NOVO',lx+9,ly+10.5);
+  doc.setDrawColor(0);doc.rect(lx+3,ly+14,4,4);
+  doc.text('POSTE EXISTENTE',lx+9,ly+17.5);
+  doc.setDrawColor(220,38,38);doc.setLineDashPattern([1.2,0.8],0);doc.line(lx+3,ly+22,lx+8,ly+22);
+  doc.text('MT NOVO (traç.)',lx+9,ly+22.8);
+  doc.setDrawColor(0,0,0);doc.line(lx+3,ly+27,lx+8,ly+27);
+  doc.text('MT EXISTENTE (traç.)',lx+9,ly+27.8);
+  doc.setLineDashPattern([],0);
+  doc.setDrawColor(22,163,74);doc.line(lx+3,ly+32,lx+8,ly+32);
+  doc.text('BT NOVO',lx+9,ly+32.8);
+  doc.setDrawColor(29,78,216);doc.line(lx+3,ly+37,lx+8,ly+37);
+  doc.text('BT EXISTENTE',lx+9,ly+37.8);
+
+  // quadro de postes e estruturas
+  const qY=mapY+mapH,qH=35;
+  doc.setDrawColor(0);doc.setLineWidth(0.35);doc.rect(m+2,qY,W-m*2-4,qH);
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('QUADRO DE POSTES E ESTRUTURAS',W/2,qY+4,{align:'center'});
+  const qx=m+2, qw=W-m*2-4;
+  const cols=[0,25,70,115,160,qw];
+  const headers=['TIPO','EXISTENTE','A INSTALAR','A RETIRAR','REMANEJAR','TOTAL'];
+  doc.setFontSize(6);doc.setFont('helvetica','normal');
+  for(let i=0;i<cols.length-1;i++){
+    doc.line(qx+cols[i],qY+7,qx+cols[i],qY+qH);
+    doc.text(headers[i],qx+(cols[i]+cols[i+1])/2,qY+12,{align:'center'});
+  }
+  doc.line(qx+qw,qY+7,qx+qw,qY+qH);
+  doc.line(qx,qY+7,qx+qw,qY+7);doc.line(qx,qY+14,qx+qw,qY+14);
+  ['QTD','NOME','QTD','NOME','QTD','NOME','QTD','NOME','QTD'].forEach((h,i)=>{});
+  const novos=S.points.filter(p=>p.situacao!=='existente').length;
+  const exist=S.points.filter(p=>p.situacao==='existente').length;
+  const trs=S.points.filter(p=>p.transformador).length;
+  const rows=[['POSTE',exist,novos,0,0,exist+novos],['ESTAI',0,0,0,0,0],['ANCORAGEM',0,0,0,0,0],['TRANSFORMADOR',0,trs,0,0,trs],['TOTAL GERAL',exist,novos+trs,0,0,exist+novos+trs]];
+  let ry=qY+20;
+  doc.setFontSize(6.2);
+  rows.forEach(r=>{
+    doc.line(qx,ry-4,qx+qw,ry-4);
+    doc.text(r[0],qx+12.5,ry,{align:'center'});
+    doc.text(String(r[1]),qx+47.5,ry,{align:'center'});
+    doc.text(String(r[2]),qx+92.5,ry,{align:'center'});
+    doc.text(String(r[3]),qx+137.5,ry,{align:'center'});
+    doc.text(String(r[4]),qx+182.5,ry,{align:'center'});
+    doc.text(String(r[5]),qx+qw-8,ry,{align:'center'});
+    ry+=5;
+  });
+
+  // carimbo inferior estilo Equatorial/Eletrobras
+  const cY=qY+qH,cH=H-m-cY;
+  const cX=m+2,cW=W-m*2-4;
+  doc.setDrawColor(0);doc.setLineWidth(0.45);doc.rect(cX,cY,cW,cH);
+  const leftW=48,rightW=45,midW=cW-leftW-rightW;
+  doc.line(cX+leftW,cY,cX+leftW,cY+cH);doc.line(cX+leftW+midW,cY+16,cX+leftW+midW,cY+cH);
+  // logo texto
+  doc.setTextColor(0,120,180);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('Eletrobras',cX+10,cY+12);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('Distribuição Piauí',cX+13,cY+19);
+  doc.setTextColor(0);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text(pr.empresa||'Equatorial Piauí',cX+leftW+midW/2,cY+10,{align:'center'});
+  doc.setFontSize(8);doc.text(pr.obra||'DV-NIV-SPP-UC-17086574 -CO-0171590',cX+leftW+midW/2,cY+20,{align:'center'});
+  doc.line(cX,cY+24,cX+cW,cY+24);
+  // esquerda
+  const lrows=[['Projetista:',pr.projetista||''],['Aprovação:',pr.aprovacao||''],['Data:',pr.dataProjeto||''],['Escala:',pr.escala||'1:1000']];
+  let ly2=cY+30;doc.setFont('helvetica','normal');doc.setFontSize(7);
+  lrows.forEach((r,idx)=>{doc.text(r[0],cX+1,ly2); if(r[1]) doc.text(r[1],cX+18,ly2); if(idx<3)doc.line(cX,ly2+7,cX+leftW,ly2+7); ly2+=13;});
+  doc.setFontSize(10);doc.text(pr.escala||'1:1000',cX+leftW/2,cY+cH-3,{align:'center'});
+  // meio
+  const mx=cX+leftW;doc.line(mx,cY+43,mx+midW,cY+43);doc.line(mx,cY+57,mx+midW,cY+57);
+  doc.setFontSize(7);doc.text('Descrição da Obra:',mx+3,cY+31);
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text(pr.obra||'--',mx+3,cY+40,{maxWidth:midW-6});
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('Interessado:',mx+3,cY+49);doc.text(pr.interessado||'',mx+30,cY+49,{maxWidth:midW-35});
+  doc.text('Cidade/Local:',mx+3,cY+63);doc.setFontSize(10);doc.text(pr.cidade||'--',mx+midW/2,cY+70,{align:'center'});
+  // direita
+  const rx=mx+midW;doc.line(rx,cY+43,rx+rightW,cY+43);doc.line(rx,cY+73,rx+rightW,cY+73);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('Referência:',rx+2,cY+31);doc.text(pr.referencia||'',rx+2,cY+38,{maxWidth:rightW-4});
+  doc.text('Projeto Nº:',rx+2,cY+49);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(pr.projetoNum||'--',rx+rightW/2,cY+61,{align:'center'});
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('Folha:',rx+2,cY+79);doc.setFontSize(10);doc.text(pr.folha||'001',rx+rightW/2,cY+cH-3,{align:'center'});
+  doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(150);doc.text('RedeCalc Pro GPS — by Nick5188',W-m-2,H-m-1.5,{align:'right'});
+
+  const fnamePr='prancha_'+(pr.projetoNum||'projeto')+'_'+Date.now()+'.pdf';
+  await shareOrDownload(doc.output('blob'),fnamePr,'Prancha Técnica');
+  showStatus('✅ Prancha técnica gerada no modelo Equatorial!','success');
+}
+
+// ══════════ PDF EVIDÊNCIAS ══════════
+async function exportEvidencePDF(){
+  if(!S.evidences.length){alert('Nenhuma evidência registrada.');return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,H=297,m=13;
+  const pr=S.proj;
+
+  // Capa
+  doc.setFillColor(194,112,61);doc.rect(0,0,W,H,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(24);doc.setFont('helvetica','bold');
+  doc.text('RELATÓRIO DE EVIDÊNCIAS',W/2,90,{align:'center'});
+  doc.setFontSize(13);doc.setFont('helvetica','normal');
+  doc.text(pr.empresa||'RedeCalc Pro GPS',W/2,106,{align:'center'});
+  doc.setFontSize(11);
+  if(pr.obra)doc.text(pr.obra,W/2,118,{align:'center',maxWidth:W-m*2});
+  if(pr.cidade)doc.text(pr.cidade,W/2,127,{align:'center'});
+  if(pr.projetoNum){doc.setFont('helvetica','bold');doc.text('Projeto Nº: '+pr.projetoNum,W/2,136,{align:'center'});}
+  doc.setFont('helvetica','normal');
+  doc.text('Total de evidências: '+S.evidences.length,W/2,147,{align:'center'});
+  doc.text(new Date().toLocaleString('pt-BR'),W/2,156,{align:'center'});
+
+  // Páginas de evidência
+  S.evidences.forEach((ev,idx)=>{
+    doc.addPage();let y=m;
+    // header bar
+    doc.setFillColor(194,112,61);doc.rect(0,0,W,18,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(10.5);doc.setFont('helvetica','bold');
+    doc.text(`Evidência ${idx+1} / ${S.evidences.length}`,m,12);
+    doc.setFontSize(8.5);doc.setFont('helvetica','normal');
+    doc.text(ev.ts,W-m,12,{align:'right'});
+    y=24;
+    // foto
+    if(ev.foto){
+      try{doc.addImage(ev.foto,'JPEG',m,y,W-m*2,108);y+=112;}catch(e){}
+    }
+    // info box
+    doc.setFillColor(248,250,252);doc.rect(m,y,W-m*2,68,'F');
+    doc.setDrawColor(220,220,220);doc.rect(m,y,W-m*2,68,'S');
+    y+=7;
+    doc.setTextColor(194,112,61);doc.setFontSize(9);doc.setFont('helvetica','bold');
+    doc.text('INFORMAÇÕES DA EVIDÊNCIA',m+4,y);y+=7;
+    const rows=[
+      ['Comentário:',ev.comentario||'--'],
+      ['Responsável:',ev.responsavel||'--'],
+      ['Data/Hora:',ev.ts],
+      ['Coordenadas:',ev.lat?`${ev.lat.toFixed(7)}, ${ev.lng.toFixed(7)}`:'Sem GPS'],
+      ['Precisão:',ev.acc?ev.acc.toFixed(1)+' m':'--'],
+      ['Obra:',pr.obra||'--'],
+      ['Cidade:',pr.cidade||'--'],
+      ['Projeto Nº:',pr.projetoNum||'--'],
+    ];
+    doc.setFontSize(8.5);doc.setTextColor(30,30,30);
+    rows.forEach(([k,v])=>{
+      doc.setFont('helvetica','bold');doc.text(k,m+4,y);
+      doc.setFont('helvetica','normal');doc.text(String(v).substring(0,70),m+40,y);
+      y+=6.5;
+    });
+    if(ev.lat){
+      y+=2;
+      doc.setFillColor(239,246,255);doc.rect(m,y,W-m*2,11,'F');
+      doc.setTextColor(29,78,216);doc.setFontSize(7.5);
+      doc.text(`https://maps.google.com/?q=${ev.lat.toFixed(7)},${ev.lng.toFixed(7)}`,m+3,y+7.5);
+    }
+    // footer
+    doc.setFillColor(194,112,61);doc.rect(0,H-9,W,9,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(7.5);
+    doc.text('RedeCalc Pro GPS by Nick5188 — Relatório de Evidências',m,H-3);
+    doc.text(`Ev. ${idx+1}/${S.evidences.length}  |  Projeto: ${pr.projetoNum||'--'}`,W-m,H-3,{align:'right'});
+  });
+  const fnameEv='evidencias_'+(pr.projetoNum||'projeto')+'_'+Date.now()+'.pdf';
+  await shareOrDownload(doc.output('blob'),fnameEv,'Relatório de Evidências');
+  showStatus('✅ Relatório de Evidências gerado!','success');
+}
+
+// ══════════ CSV / JSON ══════════
+function exportCSV(){
+  if(!S.points.length){alert('Nenhum ponto.');return;}
+  const h='Nome,Lat,Lng,Poste,Situacao,Vao_m,EstMT,CaboMT,EstBT,CaboBT,Transformador,Chave,Obs';
+  const r=S.points.map(p=>[p.nome,p.lat,p.lng,p.poste,p.situacao,p.distFromPrev?p.distFromPrev.toFixed(1):'',p.estMT,p.caboMT,p.estBT,p.caboBT,p.transformador?'Sim':'Não',p.chave?p.tipoChave:'',p.obs].join(','));
+  dl(h+'\n'+r.join('\n'),'text/csv','projeto.csv');
+}
+function exportJSON(){
+  dl(JSON.stringify({project:S.proj,points:S.points,evidences:S.evidences.map(e=>({...e,foto:undefined}))},null,2),'application/json','projeto.json');
+}
+function dl(content,type,name){
+  const b=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();
+}
+
+// ══════════ STATUS ══════════
+function showStatus(msg,type){
+  const el=document.getElementById('exportStatus');
+  if(el){el.style.display='block';el.innerHTML=`<div class="alert alert-${type}">${msg}</div>`;setTimeout(()=>el.style.display='none',4000);}
+}
+
+// ══════════ NOVO PROJETO ══════════
+function confirmNovoproject(){
+  S.points=[];S.evidences=[];S.proj={};S.sig=null;
+  ['empresa','obra','interessado','cidade','referencia','projetoNum','alimentador','projetista','aprovacao','dataProjeto']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('folha').value='001';
+  clearSig();
+  renderPoints();renderEvidences();drawMap();updateStats();
+  fecharModal();
+  goTab('project');
+  clearAutoSave();
+  setTimeout(()=>showStatus('✅ Novo projeto iniciado!','success'),200);
+}
+// fix button onclick
+document.querySelector('#modalNovo .btn-red').onclick=confirmNovoproject;
+
+updateStats();
+autoRestore();
+window.addEventListener('beforeunload',()=>{try{autoSave();}catch(e){}});
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(err=>console.error('Falha ao registrar Service Worker:',err));
+  });
+}
+</script>
+</body>
+</html>
