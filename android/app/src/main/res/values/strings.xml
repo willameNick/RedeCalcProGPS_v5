@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RedeCerta GPS</string>
+    <string name="title_activity_main">RedeCerta GPS</string>
+    <string name="package_name">com.willamenick.redecalcprogps</string>
+    <string name="custom_url_scheme">com.willamenick.redecalcprogps</string>
+</resources>

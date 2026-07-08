@@ -1,6 +1,6 @@
 {
-  "name": "RedeCalc Pro GPS",
-  "short_name": "RedeCalc",
+  "name": "RedeCerta GPS",
+  "short_name": "RedeCerta",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d1526",

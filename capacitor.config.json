@@ -1,0 +1,15 @@
+{
+  "appId": "com.willamenick.redecalcprogps",
+  "appName": "RedeCerta GPS",
+  "webDir": "www",
+  "backgroundColor": "#0a0e18",
+  "android": {
+    "backgroundColor": "#0a0e18"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "backgroundColor": "#0a0e18",
+      "showSpinner": false
+    }
+  }
+}

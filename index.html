@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>RedeCalc Pro GPS</title>
+<title>RedeCerta GPS</title>
 <meta name="theme-color" content="#0d1526">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/favicon-32.png">
@@ -18,18 +18,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
-  /* ── Paleta: prancha técnica + fio de cobre ── */
-  --ink:#0d1526;--ink2:#182238;--ink3:#212e49;
-  --cu:#c2703d;--cud:#a35a2c;--cul:#e8935a;--cubg:#fdf1e7;
+  /* ── Paleta: dark tech (estilo CircuitoCerto) ── */
+  --ink:#0a0e18;--ink2:#141c2c;--ink3:#1b2438;
+  --cu:#f5a623;--cud:#d97706;--cul:#fbbf6b;--cubg:rgba(245,166,35,.15);
   --volt:#f2b705;--circuit:#2dd4bf;
-  --bl:#2563eb;--gr:#16a34a;--re:#dc2626;--ye:#eab308;
-  --g50:#faf9f6;--g100:#f2efe9;--g200:#e6e1d6;--g300:#d3ccbb;
-  --g400:#9a9284;--g600:#5b5346;--g800:#241f18;
-  --paper:#fffdf9;
-  --sh:0 1px 3px rgba(13,21,38,.08),0 1px 2px rgba(13,21,38,.06);
-  --shm:0 6px 16px -4px rgba(13,21,38,.28);
-  --shg:0 2px 10px rgba(194,112,61,.28);
-  --r:12px;
+  --bl:#5b8def;--gr:#34d399;--re:#f2777a;--ye:#fbbf24;
+  --grad1:#f97316;--grad2:#7c3aed;
+  --g50:#0f1626;--g100:#0a0e18;--g200:#232d40;--g300:#333f58;
+  --g400:#6b7688;--g600:#aab4c6;--g800:#e8ecf3;
+  --paper:#121a29;
+  --mono:ui-monospace,'Roboto Mono','SFMono-Regular','Courier New',monospace;
+  --sh:0 1px 3px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.25);
+  --shm:0 6px 20px -4px rgba(0,0,0,.55);
+  --shg:0 2px 14px rgba(245,166,35,.32);
+  --r:14px;
   --fd:'Chakra Petch',sans-serif;--fb:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -38,9 +40,13 @@ body{font-family:var(--fb);background:var(--g100);color:var(--g800);min-height:1
 
 /* NAV */
 nav{background:linear-gradient(120deg,var(--ink),var(--ink2) 55%,var(--ink3));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:56px;position:sticky;top:0;z-index:200;box-shadow:var(--shm);
-  background-image:linear-gradient(120deg,var(--ink),var(--ink2) 55%,var(--ink3)),repeating-linear-gradient(115deg,rgba(194,112,61,.09) 0 2px,transparent 2px 34px);}
-nav h1{font-family:var(--fd);font-size:16.5px;font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:8px;}
-nav h1 .bolt{color:var(--cu);filter:drop-shadow(0 0 5px rgba(194,112,61,.7));}
+  background-image:linear-gradient(120deg,var(--ink),var(--ink2) 55%,var(--ink3)),repeating-linear-gradient(115deg,rgba(245,166,35,.08) 0 2px,transparent 2px 34px);
+  border-bottom:1px solid var(--g200);}
+nav h1{font-family:var(--fd);font-size:16.5px;font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:9px;}
+nav h1 .badge{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--grad1),var(--grad2));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(124,58,237,.35);}
+nav h1 .badge .bolt{color:#fff;font-size:15px;filter:none;}
+nav h1 .brand-a{color:#fff;}
+nav h1 .brand-b{color:var(--cu);}
 #gpsIndicator{font-size:11px;background:rgba(255,255,255,.14);border-radius:20px;padding:4px 11px 4px 8px;font-weight:600;display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.12);}
 #gpsIndicator::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--g400);flex-shrink:0;}
 #gpsIndicator.on{background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.35);}
@@ -69,7 +75,7 @@ nav h1 .bolt{color:var(--cu);filter:drop-shadow(0 0 5px rgba(194,112,61,.7));}
 /* FORM */
 label{display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:3px;margin-top:9px;}
 input,select,textarea{width:100%;padding:9px 11px;border:1.5px solid var(--g200);border-radius:8px;font-size:14px;color:var(--g800);background:var(--g50);transition:border .2s,box-shadow .2s;appearance:auto;-webkit-appearance:auto;font-family:var(--fb);}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--cu);background:#fff;box-shadow:0 0 0 3px rgba(194,112,61,.15);}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--cu);background:var(--ink2);box-shadow:0 0 0 3px rgba(245,166,35,.18);}
 textarea{resize:vertical;min-height:58px;}
 
 /* BUTTONS */
@@ -77,13 +83,13 @@ textarea{resize:vertical;min-height:58px;}
 .btn:active{transform:scale(.96);}
 .btn-primary{background:linear-gradient(135deg,var(--cul),var(--cu));color:#fff;box-shadow:var(--shg);}
 .btn-primary:active{filter:brightness(.92);}
-.btn-outline{background:#fff;color:var(--cu);border:1.5px solid var(--cu);}
+.btn-outline{background:var(--ink2);color:var(--cu);border:1.5px solid var(--cu);}
 .btn-outline:active{background:var(--cubg);}
-.btn-green{background:linear-gradient(135deg,#22c55e,var(--gr));color:#fff;}
+.btn-green{background:linear-gradient(135deg,#4ade80,var(--gr));color:#06281a;}
 .btn-green:active{filter:brightness(.92);}
-.btn-blue{background:linear-gradient(135deg,#3b82f6,var(--bl));color:#fff;}
+.btn-blue{background:linear-gradient(135deg,#93c5fd,var(--bl));color:#0b2547;}
 .btn-blue:active{filter:brightness(.92);}
-.btn-red{background:linear-gradient(135deg,#ef4444,var(--re));color:#fff;}
+.btn-red{background:linear-gradient(135deg,#fca5a5,var(--re));color:#3f0d0d;}
 .btn-red:active{filter:brightness(.92);}
 .btn-yellow{background:linear-gradient(135deg,#fcd34d,var(--ye));color:#402d02;}
 .btn-sm{padding:7px 12px;font-size:12px;}
@@ -106,12 +112,12 @@ textarea{resize:vertical;min-height:58px;}
 .point-item p{font-size:11.5px;color:var(--g600);margin-top:3px;}
 .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
 .tag{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;}
-.tag-mt{background:#fee2e2;color:var(--re);}
-.tag-bt{background:#dcfce7;color:var(--gr);}
-.tag-tr{background:#dbeafe;color:var(--bl);}
-.tag-ch{background:#fef9c3;color:#92400e;}
-.tag-new{background:#f0fdf4;color:var(--gr);}
-.tag-ex{background:var(--g100);color:var(--g600);}
+.tag-mt{background:rgba(248,113,113,.15);color:var(--re);}
+.tag-bt{background:rgba(52,211,153,.15);color:var(--gr);}
+.tag-tr{background:rgba(96,165,250,.15);color:var(--bl);}
+.tag-ch{background:rgba(251,191,36,.15);color:var(--ye);}
+.tag-new{background:rgba(52,211,153,.15);color:var(--gr);}
+.tag-ex{background:var(--g200);color:var(--g600);}
 
 /* EVIDENCE */
 .ev-item{background:var(--g50);border-radius:8px;overflow:hidden;margin-bottom:10px;border:1px solid var(--g200);animation:fade-up .3s ease both;}
@@ -121,7 +127,7 @@ textarea{resize:vertical;min-height:58px;}
 .ev-meta{font-size:11px;color:var(--g400);margin-top:3px;}
 
 /* CANVAS */
-#mapCanvas{width:100%;border-radius:8px;border:1px solid var(--g200);background:#f3f0ea;display:block;}
+#mapCanvas{width:100%;border-radius:8px;border:1px solid var(--g200);background:#fffdf9;display:block;}
 
 /* STATS */
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px;}
@@ -131,18 +137,54 @@ textarea{resize:vertical;min-height:58px;}
 
 /* ALERTS */
 .alert{padding:9px 13px;border-radius:8px;font-size:12.5px;margin-bottom:8px;animation:fade-up .25s ease both;}
-.alert-info{background:#eff6ff;color:#1d4ed8;border-left:3px solid #1d4ed8;}
-.alert-success{background:#f0fdf4;color:var(--gr);border-left:3px solid var(--gr);}
-.alert-warn{background:#fefce8;color:#92400e;border-left:3px solid var(--ye);}
-.alert-error{background:#fef2f2;color:var(--re);border-left:3px solid var(--re);}
+.alert-info{background:rgba(96,165,250,.12);color:#93c5fd;border-left:3px solid var(--bl);}
+.alert-success{background:rgba(52,211,153,.12);color:var(--gr);border-left:3px solid var(--gr);}
+.alert-warn{background:rgba(251,191,36,.12);color:var(--ye);border-left:3px solid var(--ye);}
+.alert-error{background:rgba(248,113,113,.12);color:var(--re);border-left:3px solid var(--re);}
 
 /* CHECK */
 .check-row{display:flex;align-items:center;gap:8px;margin-top:9px;}
 .check-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--cu);flex-shrink:0;}
 .check-row label{margin:0;font-size:13px;font-weight:500;}
 
-/* SIG */
-#sigCanvas{width:100%;height:110px;border:1.5px dashed var(--g300);border-radius:8px;background:#fff;touch-action:none;cursor:crosshair;}
+/* POSIÇÃO DO POSTE */
+.pos-picker{display:flex;gap:9px;margin-top:6px;}
+.pos-opt{flex:1;border:1.5px solid var(--g200);border-radius:8px;padding:10px 6px 8px;text-align:center;cursor:pointer;background:var(--g50);transition:border-color .15s,background .15s;}
+.pos-opt.sel{border-color:var(--cu);background:var(--cubg);}
+.pos-opt svg{display:block;margin:0 auto 5px;}
+.pos-opt rect{fill:var(--g300);stroke:var(--g600);stroke-width:1.5;}
+.pos-opt.sel rect{fill:var(--cu);stroke:var(--cud);}
+.pos-opt span{font-size:11.5px;font-weight:600;color:var(--g600);}
+.pos-opt.sel span{color:var(--cud);}
+
+/* DIAGRAMA UNIFILAR (estilo CircuitoCerto) */
+.uf-wrap{display:flex;flex-direction:column;align-items:center;padding:10px 4px 4px;}
+.uf-node{border-radius:14px;padding:12px 18px;min-width:78%;max-width:100%;text-align:center;}
+.uf-source{border:1.5px dashed var(--g300);color:var(--g400);font-family:var(--fd);font-size:11.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.uf-connector{display:flex;flex-direction:column;align-items:center;position:relative;height:30px;}
+.uf-conn-line{width:0;height:100%;border-left:2.5px solid var(--lc,var(--g300));}
+.uf-conn-line.dash{border-left-style:dashed;}
+.uf-vao{position:absolute;top:50%;transform:translateY(-50%);background:var(--g100);color:var(--g600);font-family:var(--mono);font-size:9.5px;padding:1px 7px;border-radius:20px;border:1px solid var(--g200);white-space:nowrap;}
+.uf-pole{display:flex;align-items:center;gap:12px;background:var(--paper);border-radius:14px;padding:12px 16px;box-shadow:var(--sh);border:1.5px solid var(--g300);min-width:88%;text-align:left;}
+.uf-pole.uf-new{border-color:var(--re);}
+.uf-pole.uf-existing{border-color:#5b6478;}
+.uf-pole-shape{flex-shrink:0;border-radius:3px;}
+.uf-pole.uf-new .uf-pole-shape{background:var(--re);box-shadow:0 0 9px rgba(248,113,113,.55);}
+.uf-pole.uf-existing .uf-pole-shape{background:#5b6478;}
+.uf-pole.uf-h .uf-pole-shape{width:36px;height:15px;}
+.uf-pole.uf-v .uf-pole-shape{width:15px;height:36px;}
+.uf-pole-info{flex:1;min-width:0;}
+.uf-pole-name{font-family:var(--fd);font-weight:700;font-size:14px;color:var(--g800);}
+.uf-pole-badge{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;letter-spacing:.3px;}
+.uf-pole.uf-new .uf-pole-badge{background:rgba(248,113,113,.15);color:var(--re);}
+.uf-pole.uf-existing .uf-pole-badge{background:var(--g200);color:var(--g600);}
+.uf-pole-specs{font-family:var(--mono);font-size:10.8px;color:var(--g400);margin-top:4px;line-height:1.6;word-break:break-word;}
+.uf-legend{display:flex;flex-wrap:wrap;gap:12px 16px;justify-content:center;margin-top:16px;padding-top:14px;border-top:1px dashed var(--g300);width:100%;}
+.uf-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--g600);}
+.uf-legend-swatch{width:18px;height:0;border-top:2.5px solid var(--lc);}
+.uf-legend-swatch.dash{border-top-style:dashed;}
+.uf-legend-swatch.box{width:12px;height:12px;border-radius:2px;background:var(--lc);border-top:none;}
+.uf-sig{text-align:center;font-size:10.5px;color:var(--g400);font-style:italic;margin-top:14px;}
 
 /* HERO */
 .hero{position:relative;overflow:hidden;background:linear-gradient(140deg,var(--ink),var(--ink3) 60%,var(--cud));color:#fff;border-radius:var(--r);padding:20px 16px;margin-bottom:13px;}
@@ -187,7 +229,7 @@ textarea{resize:vertical;min-height:58px;}
 </div>
 
 <nav>
-  <h1><span class="bolt">⚡</span> RedeCalc Pro GPS</h1>
+  <h1><span class="badge"><span class="bolt">⚡</span></span><span class="brand-a">Rede</span><span class="brand-b">Certa</span> GPS</h1>
   <span id="gpsIndicator">GPS OFF</span>
 </nav>
 
@@ -195,6 +237,7 @@ textarea{resize:vertical;min-height:58px;}
   <div class="tab active" onclick="goTab('home')">🏠 Início</div>
   <div class="tab" onclick="goTab('project')">📋 Projeto</div>
   <div class="tab" onclick="goTab('gps')">📍 GPS</div>
+  <div class="tab" onclick="goTab('unifilar')">⚡ Unifilar</div>
   <div class="tab" onclick="goTab('evidence')">📷 Evidências</div>
   <div class="tab" onclick="goTab('streetmap')">🗺️ Ruas</div>
   <div class="tab" onclick="goTab('export')">📤 Exportar</div>
@@ -222,9 +265,9 @@ textarea{resize:vertical;min-height:58px;}
       <ellipse cx="71" cy="24" rx="3" ry="4" fill="#2b211a"/>
       <path d="M60 42 L52 60 L59 60 L54 76 L69 55 L61 55 Z" fill="#f2b705"/>
     </svg>
-    <h2>RedeCalc Pro GPS</h2>
+    <h2>RedeCerta GPS</h2>
     <p>Projeto georreferenciado de redes elétricas.<br>Modelo Equatorial — prancha técnica com carimbo.</p>
-    <p style="font-size:10.5px;opacity:.75;margin-top:6px">by Nick5188</p>
+    <p style="font-size:10.5px;opacity:.75;margin-top:6px">by WNK</p>
     <div class="btn-row" style="margin-top:12px">
       <button class="btn btn-outline" style="background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.45)" onclick="goTab('gps')">📍 Ir para GPS</button>
       <button class="btn btn-outline" style="background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.45)" onclick="goTab('export')">📤 Exportar PDF</button>
@@ -285,20 +328,6 @@ textarea{resize:vertical;min-height:58px;}
     <div id="matResumo"><p style="color:var(--g400);font-size:13px">Nenhum ponto adicionado ainda.</p></div>
   </div>
 
-  <div class="card">
-    <h2>Assinatura Digital</h2>
-    <label>Nome do responsável</label><input id="sigNome" type="text" placeholder="Nome completo">
-    <label>Cargo / Função</label>
-    <select id="sigCargo">
-      <option>Encarregado</option><option>Técnico em Eletrotécnica</option>
-      <option>Engenheiro Eletricista</option><option>Fiscal</option><option>Outro</option>
-    </select>
-    <div style="margin-top:10px"><canvas id="sigCanvas"></canvas></div>
-    <div class="btn-row">
-      <button class="btn btn-outline btn-sm" onclick="clearSig()">🗑️ Limpar</button>
-      <button class="btn btn-primary btn-sm" onclick="saveSig()">✅ Salvar assinatura</button>
-    </div>
-  </div>
 </div>
 
 <!-- ═══ GPS ═══ -->
@@ -344,7 +373,8 @@ textarea{resize:vertical;min-height:58px;}
       <optgroup label="── Concreto (DIN) ──">
         <option>9-300</option><option>9-600</option><option>10-300</option>
         <option>11-300</option><option>11-600</option><option>11-1000</option>
-        <option>11-1500</option><option>13-600</option><option>13-1500</option>
+        <option>11-1500</option><option>12-300</option><option>12-600</option>
+        <option>12-1000</option><option>12-1500</option><option>13-600</option><option>13-1500</option>
       </optgroup>
       <optgroup label="── Metálico ──">
         <option>Metálico tubular</option>
@@ -358,6 +388,21 @@ textarea{resize:vertical;min-height:58px;}
       <option value="novo">Poste novo</option>
       <option value="existente">Poste existente</option>
     </select>
+
+    <div id="posicaoPosteDiv">
+      <label>Posição do poste (desenho vermelho no mapa)</label>
+      <div class="pos-picker">
+        <div class="pos-opt sel" data-val="horizontal" onclick="selecionarPosicaoPoste('horizontal')">
+          <svg width="46" height="34" viewBox="0 0 46 34"><rect x="4" y="13" width="38" height="8" rx="1.5"/></svg>
+          <span>Horizontal</span>
+        </div>
+        <div class="pos-opt" data-val="vertical" onclick="selecionarPosicaoPoste('vertical')">
+          <svg width="46" height="34" viewBox="0 0 46 34"><rect x="19" y="4" width="8" height="26" rx="1.5"/></svg>
+          <span>Vertical</span>
+        </div>
+      </div>
+      <input type="hidden" id="pPosicao" value="horizontal">
+    </div>
 
     <label>Aterramento</label>
     <select id="pAterr">
@@ -540,8 +585,27 @@ textarea{resize:vertical;min-height:58px;}
 
   <!-- POINTS LIST -->
   <div class="card">
-    <h2>Pontos do Projeto <span id="countBadge" style="background:var(--cu);color:#fff;border-radius:20px;padding:1px 9px;font-size:11px;margin-left:5px">0</span></h2>
+    <h2>Pontos do Projeto <span id="countBadge" style="background:var(--cu);color:#1b1206;border-radius:20px;padding:1px 9px;font-size:11px;margin-left:5px">0</span></h2>
     <div id="pointsList"><p style="color:var(--g400);font-size:13px">Nenhum ponto adicionado ainda.</p></div>
+  </div>
+</div>
+
+<!-- ═══ DIAGRAMA UNIFILAR ═══ -->
+<div id="page-unifilar" class="page">
+  <p class="sec-title">Diagrama Unifilar</p>
+  <p class="sec-sub">Visualização esquemática do traçado, gerada a partir dos pontos GPS</p>
+  <div class="card">
+    <h2>⚡ Esquema Unifilar do Projeto</h2>
+    <div class="uf-wrap" id="ufDiagram"></div>
+    <div class="uf-legend">
+      <div class="uf-legend-item"><span class="uf-legend-swatch box" style="--lc:var(--re)"></span>Poste novo</div>
+      <div class="uf-legend-item"><span class="uf-legend-swatch box" style="--lc:#5b6478"></span>Poste existente</div>
+      <div class="uf-legend-item"><span class="uf-legend-swatch dash" style="--lc:var(--re)"></span>MT novo</div>
+      <div class="uf-legend-item"><span class="uf-legend-swatch dash" style="--lc:#8a93a6"></span>MT existente</div>
+      <div class="uf-legend-item"><span class="uf-legend-swatch" style="--lc:var(--gr)"></span>BT novo</div>
+      <div class="uf-legend-item"><span class="uf-legend-swatch" style="--lc:var(--bl)"></span>BT existente</div>
+    </div>
+    <p class="uf-sig">RedeCerta GPS — diagrama gerado a partir dos pontos de campo.<br>assinatura eletrônica: WNK</p>
   </div>
 </div>
 
@@ -552,6 +616,7 @@ textarea{resize:vertical;min-height:58px;}
   <div class="card">
     <h2>Nova Evidência</h2>
     <label>Foto da evidência</label>
+    <button type="button" class="btn btn-primary btn-full" id="btnCameraNativa" style="display:none" onclick="abrirCamera()">📷 Tirar foto</button>
     <input type="file" id="evFoto" accept="image/*" capture="environment">
     <div id="evPreview" style="margin-top:8px"></div>
     <label>Comentário / Descrição</label>
@@ -562,8 +627,12 @@ textarea{resize:vertical;min-height:58px;}
     <button class="btn btn-primary btn-full" onclick="saveEvidence()">📷 Salvar evidência</button>
   </div>
   <div class="card">
-    <h2>Evidências salvas <span id="evCount" style="background:var(--cu);color:#fff;border-radius:20px;padding:1px 9px;font-size:11px;margin-left:5px">0</span></h2>
+    <h2>Evidências salvas <span id="evCount" style="background:var(--cu);color:#1b1206;border-radius:20px;padding:1px 9px;font-size:11px;margin-left:5px">0</span></h2>
     <div id="evList"><p style="color:var(--g400);font-size:13px">Nenhuma evidência registrada ainda.</p></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" style="flex:1" onclick="saveEvidencePDF()">📄 Salvar em PDF</button>
+      <button class="btn btn-outline" style="flex:1" onclick="shareEvidencePDF()">📤 Compartilhar</button>
+    </div>
   </div>
 </div>
 
@@ -632,7 +701,7 @@ textarea{resize:vertical;min-height:58px;}
 <script>
 // ══════════ TRATAMENTO GLOBAL DE ERROS ══════════
 window.onerror=function(msg,url,line,col,error){
-  console.error('Erro no RedeCalc Pro GPS:',msg,'| linha',line,'| coluna',col,error);
+  console.error('Erro no RedeCerta GPS:',msg,'| linha',line,'| coluna',col,error);
   try{showStatus('⚠️ Ocorreu um erro inesperado: '+msg,'error');}catch(e){}
   return false;
 };
@@ -641,11 +710,27 @@ window.addEventListener('unhandledrejection',function(ev){
   try{showStatus('⚠️ Erro assíncrono: '+(ev.reason&&ev.reason.message||ev.reason),'error');}catch(e){}
 });
 
+// ══════════ PONTE NATIVA (Capacitor Android) ══════════
+// Quando empacotado como app Android (Capacitor), window.Capacitor é injetado
+// automaticamente pela ponte nativa e expõe os plugins em Capacitor.Plugins.
+// Rodando como site/PWA no navegador, window.Capacitor não existe e o app usa as APIs web normais.
+function isNativeApp(){
+  return typeof Capacitor!=='undefined'&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform();
+}
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onloadend=()=>resolve(reader.result.split(',')[1]);
+    reader.onerror=reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 // ══════════ STATE ══════════
 const S={
   watcher:null, pos:null,
   points:[], evidences:[],
-  proj:{}, sig:null, sigDrawing:false
+  proj:{}
 };
 
 // ══════════ PERSISTÊNCIA AUTOMÁTICA (IndexedDB) ══════════
@@ -670,7 +755,7 @@ function autoSave(){
     try{
       const db=await abrirDB();
       const tx=db.transaction(DB_STORE,'readwrite');
-      tx.objectStore(DB_STORE).put(JSON.stringify({points:S.points,evidences:S.evidences,proj:S.proj,sig:S.sig}),DB_KEY);
+      tx.objectStore(DB_STORE).put(JSON.stringify({points:S.points,evidences:S.evidences,proj:S.proj}),DB_KEY);
     }catch(e){console.error('Falha ao salvar automaticamente:',e);}
   },400);
 }
@@ -678,16 +763,6 @@ function hidratarCamposProjeto(){
   const p=S.proj||{};
   ['empresa','obra','interessado','cidade','referencia','projetoNum','alimentador','folha','projetista','aprovacao','dataProjeto','escala']
     .forEach(id=>{const el=document.getElementById(id);if(el&&p[id]!==undefined)el.value=p[id];});
-  const sn=document.getElementById('sigNome'),sc=document.getElementById('sigCargo');
-  if(sn&&p.sigNome)sn.value=p.sigNome;
-  if(sc&&p.sigCargo)sc.value=p.sigCargo;
-}
-function restaurarAssinaturaCanvas(){
-  if(!S.sig)return;
-  const cv=document.getElementById('sigCanvas');if(!cv)return;
-  const img=new Image();
-  img.onload=()=>{cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);};
-  img.src=S.sig;
 }
 async function autoRestore(){
   try{
@@ -700,10 +775,9 @@ async function autoRestore(){
         const saved=JSON.parse(req.result);
         const temConteudo=(saved.points&&saved.points.length)||(saved.evidences&&saved.evidences.length)||(saved.proj&&Object.keys(saved.proj).length);
         if(!temConteudo)return;
-        S.points=saved.points||[];S.evidences=saved.evidences||[];S.proj=saved.proj||{};S.sig=saved.sig||null;
+        S.points=saved.points||[];S.evidences=saved.evidences||[];S.proj=saved.proj||{};
         hidratarCamposProjeto();
         renderPoints();renderEvidences();drawMap();updateStats();
-        setTimeout(restaurarAssinaturaCanvas,200);
         showStatus('✅ Projeto salvo automaticamente foi restaurado.','info');
       }catch(err){console.error('Erro ao restaurar projeto salvo:',err);}
     };
@@ -716,11 +790,12 @@ async function clearAutoSave(){
 
 // ══════════ TABS ══════════
 function goTab(id){
-  const ids=['home','project','gps','evidence','streetmap','export'];
+  const ids=['home','project','gps','unifilar','evidence','streetmap','export'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ids[i]===id));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if(id==='gps')drawMap();
+  if(id==='unifilar')renderUnifilar();
   if(id==='home')updateStats();
   if(id==='streetmap'&&streetMap)setTimeout(()=>streetMap.invalidateSize(),150);
 }
@@ -803,6 +878,11 @@ document.getElementById('pEstMT').addEventListener('change',e=>{document.getElem
 document.getElementById('pEstBT').addEventListener('change',e=>{document.getElementById('estBTOutroDiv').style.display=e.target.value==='__outro__'?'block':'none';});
 document.getElementById('pCaboMT').addEventListener('change',e=>{document.getElementById('caboMTOutroDiv').style.display=e.target.value==='__outro__'?'block':'none';});
 document.getElementById('pCaboBT').addEventListener('change',e=>{document.getElementById('caboBTOutroDiv').style.display=e.target.value==='__outro__'?'block':'none';});
+document.getElementById('pSit').addEventListener('change',e=>{document.getElementById('posicaoPosteDiv').style.display=e.target.value==='novo'?'block':'none';});
+function selecionarPosicaoPoste(v){
+  document.getElementById('pPosicao').value=v;
+  document.querySelectorAll('.pos-opt').forEach(el=>el.classList.toggle('sel',el.dataset.val===v));
+}
 function resolveField(selId,outroId){
   const sel=document.getElementById(selId).value;
   if(sel==='__outro__'){const v=document.getElementById(outroId).value.trim();return v;}
@@ -826,6 +906,7 @@ function addPoint(){
     id:Date.now(),nome,lat,lng,distFromPrev,
     poste:document.getElementById('pPoste').value,
     situacao:document.getElementById('pSit').value,
+    posicao:document.getElementById('pPosicao').value,
     aterramento:document.getElementById('pAterr').value,
     transformador:document.getElementById('pTr').checked,
     trTipo:document.getElementById('pTrTipo').value,
@@ -1009,13 +1090,17 @@ function mapTransform(pts,W,H,pad){
   };
 }
 
-function drawPoleSymbol(ctx,x,y,situacao,size=12){
+function drawPoleSymbol(ctx,x,y,situacao,size=12,posicao='horizontal'){
   ctx.save();
   ctx.fillStyle='#fff';
   ctx.lineWidth=2;
   ctx.strokeStyle=situacao==='existente'?'#000000':'#ff0000';
-  ctx.fillRect(x-size/2,y-size/2,size,size);
-  ctx.strokeRect(x-size/2,y-size/2,size,size);
+  // poste novo: retângulo orientado (horizontal/vertical) indicando a posição planejada do poste
+  // poste existente: quadrado simples em preto
+  const w=situacao==='existente'?size:(posicao==='vertical'?size*0.62:size*1.35);
+  const h=situacao==='existente'?size:(posicao==='vertical'?size*1.35:size*0.62);
+  ctx.fillRect(x-w/2,y-h/2,w,h);
+  ctx.strokeRect(x-w/2,y-h/2,w,h);
   ctx.restore();
 }
 
@@ -1073,7 +1158,7 @@ function drawTechnicalMap(ctx,W,H,showLegend=true){
   // símbolos e textos
   pts.forEach((p,i)=>{
     const x=tr.x(p.lng),y=tr.y(p.lat);
-    drawPoleSymbol(ctx,x,y,p.situacao,12);
+    drawPoleSymbol(ctx,x,y,p.situacao,12,p.posicao);
 
     // derivação/ramais curtos pretos para aparência CAD
     ctx.strokeStyle='#111';ctx.lineWidth=.8;
@@ -1120,8 +1205,64 @@ function drawTechnicalMap(ctx,W,H,showLegend=true){
   }
 }
 
+// ══════════ DIAGRAMA UNIFILAR (estilo CircuitoCerto) ══════════
+function ufTrechoInfo(p){
+  const isBT=p.trechoMT==='bt';
+  if(isBT){
+    const novo=p.caboBTSit==='novo';
+    return{color:novo?'var(--gr)':'var(--bl)',dash:false,label:(novo?'BT novo':'BT existente')+(p.caboBT?' — '+p.caboBT:'')};
+  }
+  const novo=p.caboMTSit==='novo';
+  return{color:novo?'var(--re)':'#8a93a6',dash:true,label:(novo?'MT novo':'MT existente')+(p.caboMT?' — '+p.caboMT:'')};
+}
+function renderUnifilar(){
+  const el=document.getElementById('ufDiagram');
+  if(!el)return;
+  if(!S.points.length){
+    el.innerHTML='<p style="color:var(--g400);font-size:13px;text-align:center;padding:26px 0">Adicione pontos na aba GPS para gerar o esquema unifilar.</p>';
+    return;
+  }
+  let html='<div class="uf-node uf-source">Rede Concessionária</div>';
+  S.points.forEach((p,i)=>{
+    if(i===0){
+      html+=`<div class="uf-connector"><div class="uf-conn-line dash" style="--lc:#5b6478"></div></div>`;
+    } else {
+      const info=ufTrechoInfo(p);
+      const vao=p.distFromPrev?fmtD(p.distFromPrev):'';
+      html+=`<div class="uf-connector"><div class="uf-conn-line${info.dash?' dash':''}" style="--lc:${info.color}"></div>${vao?`<span class="uf-vao">${vao} · ${info.label}</span>`:''}</div>`;
+    }
+    const isNew=p.situacao!=='existente';
+    const orient=p.posicao==='vertical'?'v':'h';
+    const specs=[];
+    if(p.poste)specs.push('🪵 '+p.poste);
+    if(p.estMT)specs.push('MT: '+p.estMT);
+    if(p.caboMT)specs.push('Cabo MT: '+p.caboMT);
+    if(p.estBT)specs.push('BT: '+p.estBT);
+    if(p.caboBT)specs.push('Cabo BT: '+p.caboBT);
+    if(p.transformador)specs.push('🟣 '+trTipoLabel(p.trTipo)+' '+(p.trPotencia||''));
+    if(p.chave)specs.push('🟡 Chave: '+p.tipoChave);
+    html+=`<div class="uf-node uf-pole uf-${orient} ${isNew?'uf-new':'uf-existing'}">
+      <div class="uf-pole-shape"></div>
+      <div class="uf-pole-info">
+        <span class="uf-pole-name">${p.nome}<span class="uf-pole-badge">${isNew?'NOVO':'EXISTENTE'}</span></span>
+        ${specs.length?`<div class="uf-pole-specs">${specs.join('<br>')}</div>`:''}
+      </div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
 // ══════════ MAPA DE RUAS (OpenStreetMap) ══════════
 let streetMap=null,streetMarkers=[];
+function trechoStyleHex(p){
+  const isBT=p.trechoMT==='bt';
+  if(isBT){
+    const novo=p.caboBTSit==='novo';
+    return{color:novo?'#16a34a':'#1d4ed8',dash:false,label:(novo?'BT novo':'BT existente')+(p.caboBT?' — '+p.caboBT:'')};
+  }
+  const novo=p.caboMTSit==='novo';
+  return{color:novo?'#dc2626':'#000000',dash:true,label:(novo?'MT novo':'MT existente')+(p.caboMT?' — '+p.caboMT:'')};
+}
 function loadStreetMap(){
   if(!S.points.length){alert('Adicione pontos na aba GPS antes de carregar o mapa de ruas.');return;}
   if(typeof L==='undefined'){alert('Não foi possível carregar a biblioteca de mapas. Verifique sua conexão com a internet e tente novamente.');return;}
@@ -1136,9 +1277,20 @@ function loadStreetMap(){
     subdomains:'abcd',maxZoom:20,crossOrigin:true
   }).addTo(streetMap);
   streetMarkers=[];
+  // traçado da rede — mesmas cores/estilos do mapa técnico (MT tracejado, BT contínuo)
+  for(let i=1;i<S.points.length;i++){
+    const a=S.points[i-1],b=S.points[i];
+    const st=trechoStyleHex(b);
+    const line=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:st.color,weight:4,opacity:.9,dashArray:st.dash?'9 7':null}).addTo(streetMap);
+    if(b.distFromPrev){
+      line.bindTooltip(fmtD(b.distFromPrev)+' · '+st.label,{permanent:true,direction:'center',opacity:.92});
+    }
+    streetMarkers.push(line);
+  }
   S.points.forEach(p=>{
     const color=p.situacao==='existente'?'#000000':'#dc2626';
     const marker=L.circleMarker([p.lat,p.lng],{radius:7,color:'#fff',weight:1.5,fillColor:color,fillOpacity:1}).addTo(streetMap);
+    marker.bindTooltip(p.nome+(p.poste?' · '+p.poste:''),{permanent:true,direction:'top',offset:[0,-8]});
     marker.bindPopup(`<b>${p.nome}</b><br>${p.poste||'--'}<br>${p.situacao==='existente'?'Poste existente':'Poste novo'}`);
     streetMarkers.push(marker);
   });
@@ -1167,7 +1319,7 @@ async function exportStreetMapPDF(){
     doc.addImage(canvas.toDataURL('image/png'),'PNG',(W-finalW)/2,18,finalW,finalH);
     doc.setTextColor(0);doc.setFont('helvetica','normal');doc.setFontSize(8);
     doc.text('Projeto: '+(S.proj.projetoNum||'--')+'  |  '+(S.proj.cidade||''),m,H-4);
-    doc.text('RedeCalc Pro GPS — by Nick5188',W-m,H-4,{align:'right'});
+    doc.text('RedeCerta GPS — by WNK',W-m,H-4,{align:'right'});
     const fname='mapa_ruas_'+(S.proj.projetoNum||'projeto')+'_'+Date.now()+'.pdf';
     await shareOrDownload(doc.output('blob'),fname,'Mapa de Ruas');
     showStatus('✅ Mapa de ruas exportado!','success');
@@ -1177,7 +1329,29 @@ async function exportStreetMapPDF(){
 }
 
 // ══════════ COMPARTILHAR / BAIXAR (arquivos usam a mesma opção para PDF e DOC) ══════════
+async function forceDownload(blob,filename){
+  // App nativo: `<a download>` não funciona dentro do WebView — grava de fato no
+  // armazenamento do app via plugin Filesystem.
+  if(isNativeApp()){
+    try{
+      const data=await blobToBase64(blob);
+      await Capacitor.Plugins.Filesystem.writeFile({path:filename,data,directory:'DOCUMENTS'});
+      return;
+    }catch(e){ console.error('Falha ao salvar arquivo nativo, usando fallback web:',e); }
+  }
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
 async function shareOrDownload(blob,filename,title){
+  if(isNativeApp()){
+    try{
+      const data=await blobToBase64(blob);
+      const written=await Capacitor.Plugins.Filesystem.writeFile({path:filename,data,directory:'CACHE'});
+      await Capacitor.Plugins.Share.share({title:title||filename,url:written.uri});
+      return true;
+    }catch(e){ console.error('Falha ao compartilhar nativamente, tentando fallback web:',e); }
+  }
   if(navigator.canShare&&navigator.share){
     try{
       const file=new File([blob],filename,{type:blob.type});
@@ -1222,7 +1396,7 @@ function buildProjectWordHTML(){
     .footer{margin-top:20px;font-size:10px;color:#888;}
   </style></head>
   <body>
-    <h1>⚡ RedeCalc Pro GPS — Prancha do Projeto</h1>
+    <h1>⚡ RedeCerta GPS — Prancha do Projeto</h1>
     <h2>Dados do Projeto</h2>
     <table>
       <tr><th>Empresa</th><td>${pr.empresa||''}</td><th>Cidade</th><td>${pr.cidade||''}</td></tr>
@@ -1246,7 +1420,7 @@ function buildProjectWordHTML(){
       <tr><th>Nome</th><th>Lat</th><th>Lng</th><th>Poste</th><th>Situação</th><th>Cabo MT</th><th>Cabo BT</th><th>Transformador</th><th>Obs.</th></tr>
       ${rowsHtml||'<tr><td colspan="9">Nenhum ponto adicionado</td></tr>'}
     </table>
-    <p class="footer">Gerado por RedeCalc Pro GPS — by Nick5188 — ${new Date().toLocaleString('pt-BR')}</p>
+    <p class="footer">Gerado por RedeCerta GPS — by WNK — ${new Date().toLocaleString('pt-BR')}</p>
   </body></html>`;
 }
 async function exportProjectDOC(){
@@ -1254,7 +1428,7 @@ async function exportProjectDOC(){
   const html=buildProjectWordHTML();
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});
   const fname='projeto_'+(S.proj.projetoNum||'projeto')+'_'+Date.now()+'.doc';
-  await shareOrDownload(blob,fname,'Projeto RedeCalc');
+  await shareOrDownload(blob,fname,'Projeto RedeCerta');
   showStatus('✅ Documento Word do projeto gerado!','success');
 }
 async function exportStreetMapDOC(){
@@ -1268,10 +1442,10 @@ async function exportStreetMapDOC(){
     const html=`<html><head><meta charset="utf-8"><title>Mapa de Ruas</title>
     <style>body{font-family:Calibri,Arial,sans-serif;} h1{color:#c2703d;} img{max-width:100%;margin-top:10px;} .footer{margin-top:16px;font-size:10px;color:#888;}</style>
     </head><body>
-      <h1>🗺️ RedeCalc Pro GPS — Mapa de Ruas</h1>
+      <h1>🗺️ RedeCerta GPS — Mapa de Ruas</h1>
       <p>Projeto: ${S.proj.projetoNum||'--'} | Cidade: ${S.proj.cidade||'--'}</p>
       <img src="${img}">
-      <p class="footer">Gerado por RedeCalc Pro GPS — by Nick5188 — ${new Date().toLocaleString('pt-BR')}</p>
+      <p class="footer">Gerado por RedeCerta GPS — by WNK — ${new Date().toLocaleString('pt-BR')}</p>
     </body></html>`;
     const blob=new Blob(['\ufeff',html],{type:'application/msword'});
     const fname='mapa_ruas_'+(S.proj.projetoNum||'projeto')+'_'+Date.now()+'.doc';
@@ -1296,32 +1470,9 @@ function salvarProjeto(){
     projetista:document.getElementById('projetista').value,
     aprovacao:document.getElementById('aprovacao').value,
     dataProjeto:document.getElementById('dataProjeto').value,
-    escala:document.getElementById('escala').value,
-    sigNome:S.proj.sigNome||'',
-    sigCargo:S.proj.sigCargo||''
+    escala:document.getElementById('escala').value
   };
   showStatus('✅ Dados salvos!','success');
-  autoSave();
-}
-
-// ══════════ SIGNATURE ══════════
-(function(){
-  const cv=document.getElementById('sigCanvas'),ctx=cv.getContext('2d');
-  function pos(e){const r=cv.getBoundingClientRect();const src=e.touches?e.touches[0]:e;return{x:src.clientX-r.left,y:src.clientY-r.top};}
-  cv.addEventListener('mousedown',e=>{S.sigDrawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
-  cv.addEventListener('mousemove',e=>{if(!S.sigDrawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle='#1f2937';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();});
-  cv.addEventListener('mouseup',()=>S.sigDrawing=false);
-  cv.addEventListener('mouseleave',()=>S.sigDrawing=false);
-  cv.addEventListener('touchstart',e=>{e.preventDefault();S.sigDrawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});
-  cv.addEventListener('touchmove',e=>{e.preventDefault();if(!S.sigDrawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle='#1f2937';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();},{passive:false});
-  cv.addEventListener('touchend',()=>S.sigDrawing=false);
-})();
-function clearSig(){const c=document.getElementById('sigCanvas');c.getContext('2d').clearRect(0,0,c.width,c.height);S.sig=null;autoSave();}
-function saveSig(){
-  S.sig=document.getElementById('sigCanvas').toDataURL('image/png');
-  S.proj.sigNome=document.getElementById('sigNome').value;
-  S.proj.sigCargo=document.getElementById('sigCargo').value;
-  showStatus('✅ Assinatura salva!','success');
   autoSave();
 }
 
@@ -1386,7 +1537,20 @@ function fixImageOrientation(file,callback){
           default: break;
         }
         ctx.drawImage(img,0,0,w,h);
-        callback(canvas.toDataURL('image/jpeg',0.9));
+
+        // Fotos de campo devem sempre ser salvas em retrato (celular na vertical).
+        // Se mesmo após a correção de EXIF a imagem continuar em paisagem, gira mais 90°.
+        let finalCanvas=canvas;
+        if(canvas.width>canvas.height){
+          finalCanvas=document.createElement('canvas');
+          finalCanvas.width=canvas.height;
+          finalCanvas.height=canvas.width;
+          const fctx=finalCanvas.getContext('2d');
+          fctx.translate(finalCanvas.width/2,finalCanvas.height/2);
+          fctx.rotate(90*Math.PI/180);
+          fctx.drawImage(canvas,-canvas.width/2,-canvas.height/2);
+        }
+        callback(finalCanvas.toDataURL('image/jpeg',0.9),finalCanvas.width,finalCanvas.height);
       };
       img.src=imgEv.target.result;
     };
@@ -1395,26 +1559,69 @@ function fixImageOrientation(file,callback){
   bufReader.readAsArrayBuffer(file);
 }
 
+let evPhotoW=0,evPhotoH=0;
+function setEvPhoto(dataUrl,w,h){
+  evPhoto=dataUrl;evPhotoW=w;evPhotoH=h;
+  document.getElementById('evPreview').innerHTML=`<img src="${dataUrl}" style="width:100%;border-radius:8px;margin-top:5px;max-height:180px;object-fit:cover">`;
+}
+// Usado pela foto vinda da câmera nativa (Capacitor), que já chega corrigida de EXIF —
+// aqui só garantimos o enquadramento em retrato, igual ao caminho do input de arquivo.
+function forcePortraitFromDataUrl(dataUrl,cb){
+  const img=new Image();
+  img.onload=function(){
+    const w=img.width,h=img.height;
+    let canvas=document.createElement('canvas');
+    canvas.width=w;canvas.height=h;
+    canvas.getContext('2d').drawImage(img,0,0);
+    if(w>h){
+      const rc=document.createElement('canvas');
+      rc.width=h;rc.height=w;
+      const rctx=rc.getContext('2d');
+      rctx.translate(rc.width/2,rc.height/2);
+      rctx.rotate(90*Math.PI/180);
+      rctx.drawImage(canvas,-w/2,-h/2);
+      canvas=rc;
+    }
+    cb(canvas.toDataURL('image/jpeg',0.9),canvas.width,canvas.height);
+  };
+  img.src=dataUrl;
+}
+async function abrirCamera(){
+  document.getElementById('evPreview').innerHTML=`<p style="font-size:12px;color:var(--g400)">Abrindo câmera...</p>`;
+  try{
+    const photo=await Capacitor.Plugins.Camera.getPhoto({
+      quality:85,allowEditing:false,resultType:'base64',source:'CAMERA',
+      saveToGallery:false,correctOrientation:true
+    });
+    const raw='data:image/'+(photo.format||'jpeg')+';base64,'+photo.base64String;
+    forcePortraitFromDataUrl(raw,(corrected,w,h)=>setEvPhoto(corrected,w,h));
+  }catch(e){
+    document.getElementById('evPreview').innerHTML='';
+    console.error('Câmera nativa indisponível ou cancelada:',e);
+  }
+}
+// Mostra o botão de câmera nativa só dentro do app Android; no navegador/PWA usa o input de arquivo normal.
+if(isNativeApp()){
+  document.getElementById('btnCameraNativa').style.display='';
+  document.getElementById('evFoto').style.display='none';
+}
 document.getElementById('evFoto').addEventListener('change',e=>{
   const f=e.target.files[0];if(!f)return;
   document.getElementById('evPreview').innerHTML=`<p style="font-size:12px;color:var(--g400)">Processando foto...</p>`;
-  fixImageOrientation(f,corrected=>{
-    evPhoto=corrected;
-    document.getElementById('evPreview').innerHTML=`<img src="${evPhoto}" style="width:100%;border-radius:8px;margin-top:5px;max-height:180px;object-fit:cover">`;
-  });
+  fixImageOrientation(f,(corrected,w,h)=>setEvPhoto(corrected,w,h));
 });
 function saveEvidence(){
   const c=document.getElementById('evComent').value.trim();
   const r=document.getElementById('evResp').value.trim();
   if(!c&&!evPhoto){alert('Adicione uma foto ou comentário.');return;}
   S.evidences.push({
-    id:Date.now(),foto:evPhoto,comentario:c,responsavel:r,
+    id:Date.now(),foto:evPhoto,fotoW:evPhotoW,fotoH:evPhotoH,comentario:c,responsavel:r,
     lat:S.pos?S.pos.coords.latitude:null,
     lng:S.pos?S.pos.coords.longitude:null,
     acc:S.pos?S.pos.coords.accuracy:null,
     ts:new Date().toLocaleString('pt-BR')
   });
-  evPhoto=null;
+  evPhoto=null;evPhotoW=0;evPhotoH=0;
   document.getElementById('evFoto').value='';
   document.getElementById('evPreview').innerHTML='';
   document.getElementById('evComent').value='';
@@ -1548,7 +1755,7 @@ async function exportProjectPDF(){
   doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('Referência:',rx+2,cY+31);doc.text(pr.referencia||'',rx+2,cY+38,{maxWidth:rightW-4});
   doc.text('Projeto Nº:',rx+2,cY+49);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(pr.projetoNum||'--',rx+rightW/2,cY+61,{align:'center'});
   doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('Folha:',rx+2,cY+79);doc.setFontSize(10);doc.text(pr.folha||'001',rx+rightW/2,cY+cH-3,{align:'center'});
-  doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(150);doc.text('RedeCalc Pro GPS — by Nick5188',W-m-2,H-m-1.5,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(150);doc.text('RedeCerta GPS — by WNK',W-m-2,H-m-1.5,{align:'right'});
 
   const fnamePr='prancha_'+(pr.projetoNum||'projeto')+'_'+Date.now()+'.pdf';
   await shareOrDownload(doc.output('blob'),fnamePr,'Prancha Técnica');
@@ -1556,8 +1763,7 @@ async function exportProjectPDF(){
 }
 
 // ══════════ PDF EVIDÊNCIAS ══════════
-async function exportEvidencePDF(){
-  if(!S.evidences.length){alert('Nenhuma evidência registrada.');return;}
+async function buildEvidencePDFBlob(){
   const{jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const W=210,H=297,m=13;
@@ -1569,7 +1775,7 @@ async function exportEvidencePDF(){
   doc.setFontSize(24);doc.setFont('helvetica','bold');
   doc.text('RELATÓRIO DE EVIDÊNCIAS',W/2,90,{align:'center'});
   doc.setFontSize(13);doc.setFont('helvetica','normal');
-  doc.text(pr.empresa||'RedeCalc Pro GPS',W/2,106,{align:'center'});
+  doc.text(pr.empresa||'RedeCerta GPS',W/2,106,{align:'center'});
   doc.setFontSize(11);
   if(pr.obra)doc.text(pr.obra,W/2,118,{align:'center',maxWidth:W-m*2});
   if(pr.cidade)doc.text(pr.cidade,W/2,127,{align:'center'});
@@ -1588,9 +1794,20 @@ async function exportEvidencePDF(){
     doc.setFontSize(8.5);doc.setFont('helvetica','normal');
     doc.text(ev.ts,W-m,12,{align:'right'});
     y=24;
-    // foto
+    // foto — preserva a proporção real (fotos de evidência são sempre retrato)
     if(ev.foto){
-      try{doc.addImage(ev.foto,'JPEG',m,y,W-m*2,108);y+=112;}catch(e){}
+      try{
+        const maxW=W-m*2,maxH=150;
+        let dw=maxW,dh=maxH;
+        if(ev.fotoW&&ev.fotoH){
+          const ratio=ev.fotoW/ev.fotoH;
+          dw=maxW;dh=dw/ratio;
+          if(dh>maxH){dh=maxH;dw=dh*ratio;}
+        }
+        const dx=m+(maxW-dw)/2;
+        doc.addImage(ev.foto,'JPEG',dx,y,dw,dh);
+        y+=dh+4;
+      }catch(e){}
     }
     // info box
     doc.setFillColor(248,250,252);doc.rect(m,y,W-m*2,68,'F');
@@ -1623,12 +1840,31 @@ async function exportEvidencePDF(){
     // footer
     doc.setFillColor(194,112,61);doc.rect(0,H-9,W,9,'F');
     doc.setTextColor(255,255,255);doc.setFontSize(7.5);
-    doc.text('RedeCalc Pro GPS by Nick5188 — Relatório de Evidências',m,H-3);
+    doc.text('RedeCerta GPS by WNK — Relatório de Evidências',m,H-3);
     doc.text(`Ev. ${idx+1}/${S.evidences.length}  |  Projeto: ${pr.projetoNum||'--'}`,W-m,H-3,{align:'right'});
   });
   const fnameEv='evidencias_'+(pr.projetoNum||'projeto')+'_'+Date.now()+'.pdf';
-  await shareOrDownload(doc.output('blob'),fnameEv,'Relatório de Evidências');
+  return{blob:doc.output('blob'),fname:fnameEv};
+}
+async function exportEvidencePDF(){
+  if(!S.evidences.length){alert('Nenhuma evidência registrada.');return;}
+  const{blob,fname}=await buildEvidencePDFBlob();
+  await shareOrDownload(blob,fname,'Relatório de Evidências');
   showStatus('✅ Relatório de Evidências gerado!','success');
+}
+async function saveEvidencePDF(){
+  if(!S.evidences.length){alert('Nenhuma evidência registrada. Tire pelo menos uma foto antes.');return;}
+  showStatus('⏳ Gerando PDF de evidências...','info');
+  const{blob,fname}=await buildEvidencePDFBlob();
+  await forceDownload(blob,fname);
+  showStatus('✅ PDF de evidências salvo!','success');
+}
+async function shareEvidencePDF(){
+  if(!S.evidences.length){alert('Nenhuma evidência registrada. Tire pelo menos uma foto antes.');return;}
+  showStatus('⏳ Preparando compartilhamento...','info');
+  const{blob,fname}=await buildEvidencePDFBlob();
+  const shared=await shareOrDownload(blob,fname,'Relatório de Evidências');
+  showStatus(shared?'✅ Evidências compartilhadas!':'✅ Compartilhamento indisponível — PDF baixado.','success');
 }
 
 // ══════════ CSV / JSON ══════════
@@ -1641,8 +1877,9 @@ function exportCSV(){
 function exportJSON(){
   dl(JSON.stringify({project:S.proj,points:S.points,evidences:S.evidences.map(e=>({...e,foto:undefined}))},null,2),'application/json','projeto.json');
 }
-function dl(content,type,name){
-  const b=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();
+async function dl(content,type,name){
+  const b=new Blob([content],{type});
+  await forceDownload(b,name);
 }
 
 // ══════════ STATUS ══════════
@@ -1653,11 +1890,10 @@ function showStatus(msg,type){
 
 // ══════════ NOVO PROJETO ══════════
 function confirmNovoproject(){
-  S.points=[];S.evidences=[];S.proj={};S.sig=null;
+  S.points=[];S.evidences=[];S.proj={};
   ['empresa','obra','interessado','cidade','referencia','projetoNum','alimentador','projetista','aprovacao','dataProjeto']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('folha').value='001';
-  clearSig();
   renderPoints();renderEvidences();drawMap();updateStats();
   fecharModal();
   goTab('project');

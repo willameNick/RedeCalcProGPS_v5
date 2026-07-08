@@ -1,0 +1,14 @@
+node_modules/
+www/
+.claude/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+android/*.iml
+android/.idea/
+android/app/release/
+android/app/debug/
