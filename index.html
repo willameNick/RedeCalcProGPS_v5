@@ -1511,6 +1511,21 @@ function getExifOrientation(arrayBuffer){
   return 1;
 }
 
+// Reduz a imagem para no máximo EV_MAX_DIM px no maior lado antes de gerar o base64.
+// Fotos de câmera em resolução total (12MP+) sobrecarregam a memória do WebView e faziam
+// o jsPDF falhar silenciosamente ao anexar a foto no relatório.
+const EV_MAX_DIM=1600;
+function downscaleCanvas(canvas,maxDim){
+  const w=canvas.width,h=canvas.height;
+  const scale=Math.min(1,maxDim/Math.max(w,h));
+  if(scale>=1)return canvas;
+  const out=document.createElement('canvas');
+  out.width=Math.round(w*scale);
+  out.height=Math.round(h*scale);
+  out.getContext('2d').drawImage(canvas,0,0,out.width,out.height);
+  return out;
+}
+
 // Redesenha a imagem em um canvas já corrigida, eliminando a rotação indevida das fotos.
 function fixImageOrientation(file,callback){
   const bufReader=new FileReader();
@@ -1550,7 +1565,8 @@ function fixImageOrientation(file,callback){
           fctx.rotate(90*Math.PI/180);
           fctx.drawImage(canvas,-canvas.width/2,-canvas.height/2);
         }
-        callback(finalCanvas.toDataURL('image/jpeg',0.9),finalCanvas.width,finalCanvas.height);
+        finalCanvas=downscaleCanvas(finalCanvas,EV_MAX_DIM);
+        callback(finalCanvas.toDataURL('image/jpeg',0.85),finalCanvas.width,finalCanvas.height);
       };
       img.src=imgEv.target.result;
     };
@@ -1582,7 +1598,8 @@ function forcePortraitFromDataUrl(dataUrl,cb){
       rctx.drawImage(canvas,-w/2,-h/2);
       canvas=rc;
     }
-    cb(canvas.toDataURL('image/jpeg',0.9),canvas.width,canvas.height);
+    canvas=downscaleCanvas(canvas,EV_MAX_DIM);
+    cb(canvas.toDataURL('image/jpeg',0.85),canvas.width,canvas.height);
   };
   img.src=dataUrl;
 }
@@ -1591,7 +1608,7 @@ async function abrirCamera(){
   try{
     const photo=await Capacitor.Plugins.Camera.getPhoto({
       quality:85,allowEditing:false,resultType:'base64',source:'CAMERA',
-      saveToGallery:false,correctOrientation:true
+      saveToGallery:false,correctOrientation:true,width:EV_MAX_DIM
     });
     const raw='data:image/'+(photo.format||'jpeg')+';base64,'+photo.base64String;
     forcePortraitFromDataUrl(raw,(corrected,w,h)=>setEvPhoto(corrected,w,h));
@@ -1807,7 +1824,13 @@ async function buildEvidencePDFBlob(){
         const dx=m+(maxW-dw)/2;
         doc.addImage(ev.foto,'JPEG',dx,y,dw,dh);
         y+=dh+4;
-      }catch(e){}
+      }catch(e){
+        console.error('Falha ao inserir foto da evidência '+(idx+1)+' no PDF:',e);
+        doc.setFontSize(9);doc.setTextColor(220,38,38);
+        doc.text('⚠️ Não foi possível carregar a foto desta evidência.',m,y+6);
+        doc.setTextColor(0);
+        y+=14;
+      }
     }
     // info box
     doc.setFillColor(248,250,252);doc.rect(m,y,W-m*2,68,'F');
