@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#f5f7fa">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Relatório Diário DPL</title>
+<script src="./jspdf.umd.min.js"></script>
+<style>
+  /* ── Tema claro: alta legibilidade sob sol, para uso em campo ── */
+  :root{--bg:#eef1f6;--panel:#ffffff;--panel2:#f1f4f9;--line:#c8d1e0;--txt:#111826;--muted:#57626f;--accent:#0b5fd7;--ok:#188038;--rec:#d93025;--amber:#a35c00;color-scheme:light}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:9px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .logo{background:#16233c;color:#fff;font-weight:800;font-size:12px;padding:3px 7px;border-radius:5px;letter-spacing:1px}
+  header h1{font-size:13px;margin:0;font-weight:700;flex:1;line-height:1.2}
+  header h1 small{display:block;color:var(--muted);font-weight:500;font-size:10px}
+  .team-chip{background:#e7f0fd;border:1px solid var(--accent);color:var(--accent);font-size:10px;font-weight:800;padding:5px 9px;border-radius:20px;cursor:pointer;white-space:nowrap}
+  .gps-badge{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:4px 8px;border-radius:20px;white-space:nowrap}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+  .dot.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}.dot.err{background:var(--rec)}
+  main{flex:1;overflow-y:auto;position:relative}
+  .view{display:none;padding:14px}.view.active{display:block}
+  .grp{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:12px}
+  .grp h3{margin:0 0 10px;font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px}
+  .field{margin-bottom:10px}.field:last-child{margin-bottom:0}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+  .field input,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:9px 10px;border-radius:8px;font-size:14px;outline:none;font-family:inherit}
+  .field input:focus,.field textarea:focus{border-color:var(--accent)}
+  .field textarea{resize:vertical;min-height:60px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn-ghost{width:100%;background:none;border:1px dashed var(--rec);color:var(--rec);padding:11px;border-radius:9px;font-size:13px;cursor:pointer;margin-top:4px}
+  .btn-add{width:100%;background:var(--panel2);border:1px dashed var(--accent);color:var(--accent);padding:10px;border-radius:9px;font-size:13px;cursor:pointer}
+  .search{position:sticky;top:-14px;z-index:5;background:var(--bg);padding:6px 0 10px;margin:-4px 0 0}
+  .search input{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);padding:11px 12px;border-radius:9px;font-size:14px;outline:none}
+  .search input:focus{border-color:var(--accent)}
+  .cat-title{font-size:11px;color:var(--amber);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 7px;font-weight:700;padding-left:2px}
+  .atv{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:7px}
+  .atv.filled{border-color:var(--ok);background:#e9f7ee}
+  .atv-info{flex:1;min-width:0}
+  .atv-cod{font-size:10px;color:var(--muted);font-family:ui-monospace,monospace}
+  .atv-desc{font-size:12px;line-height:1.3;margin-top:1px}
+  .atv-un{font-size:10px;color:var(--muted);background:var(--panel2);padding:2px 5px;border-radius:4px}
+  .qty{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .qty span{font-size:9px;color:var(--muted);text-transform:uppercase}
+  .qty input{width:46px;text-align:center;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 2px;border-radius:6px;font-size:14px;outline:none}
+  .qty input:focus{border-color:var(--accent)}.qty input.real{border-color:#8fd0a3}
+  .no-res{text-align:center;color:var(--muted);padding:30px;font-size:13px}
+  /* Seleção de equipe */
+  .teamsel{position:fixed;inset:0;background:var(--bg);z-index:80;display:none;align-items:center;justify-content:center;padding:20px;padding-top:calc(env(safe-area-inset-top) + 20px)}
+  .teamsel.open{display:flex}
+  .ts-box{width:100%;max-width:370px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 20px;text-align:center;box-shadow:0 10px 34px rgba(15,23,42,.14)}
+  .ts-box .logo{display:inline-block;font-size:15px;padding:6px 12px;margin-bottom:10px}
+  .ts-box h2{margin:0 0 6px;font-size:17px}
+  .ts-box p{margin:0 0 16px;color:var(--muted);font-size:12.5px;line-height:1.4}
+  .ts-btn{width:100%;padding:14px 14px;margin-bottom:10px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel2);color:var(--txt);font-size:14.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left}
+  .ts-btn .em{font-size:22px;flex-shrink:0}
+  .ts-btn div{flex:1}
+  .ts-btn small{display:block;font-weight:500;color:var(--muted);font-size:10.5px;margin-top:2px}
+  .ts-btn:active{border-color:var(--accent);background:#e7f0fd}
+  .ts-close{background:none;border:none;color:var(--muted);font-size:13px;margin-top:4px;cursor:pointer;display:none;padding:8px}
+  /* APR */
+  .apr-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;line-height:1.45;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:9px;padding:9px 11px;margin-bottom:12px}
+  .apr-q{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px;margin-bottom:10px}
+  .apr-q .qh{font-size:12.5px;line-height:1.35;margin-bottom:9px}
+  .apr-q .qh b{color:var(--accent);margin-right:4px}
+  .snr{display:flex;gap:6px;margin-bottom:8px}
+  .snr button{flex:1;padding:8px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer}
+  .snr button.sel-sim{background:#dff3e5;border-color:var(--ok);color:#116329}
+  .snr button.sel-nao{background:#fde7e5;border-color:var(--rec);color:#b3261e}
+  .snr button.sel-na{background:#fcf2d5;border-color:var(--amber);color:#8a5800}
+  .ctrl{display:flex;gap:8px;align-items:flex-start;padding:5px 2px;font-size:12px;line-height:1.3}
+  .ctrl input{margin-top:1px;width:17px;height:17px;flex-shrink:0;appearance:none;-webkit-appearance:none;border:1px solid var(--line);border-radius:4px;background:var(--panel2);position:relative;cursor:pointer}
+  .ctrl input:checked{border-color:var(--ok)}
+  .ctrl input:checked::after{content:"X";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--ok)}
+  .apr-note{font-size:11.5px;color:var(--muted);background:var(--panel2);border:1px dashed var(--line);border-radius:9px;padding:9px 10px;margin-bottom:10px;line-height:1.45}
+  .colab-row{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px;margin-bottom:8px}
+  .colab-row .cr{display:flex;gap:6px;margin-bottom:6px}
+  .colab-row input{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px;border-radius:7px;font-size:13px;outline:none;min-width:0}
+  .colab-row input.mat{width:80px;flex-shrink:0}.colab-row input.nm{flex:1}
+  .chips{display:flex;gap:6px;align-items:center}
+  .chip{flex:1;text-align:center;padding:6px 4px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer}
+  .chip.on{background:#dff3e5;border-color:var(--ok);color:#116329}
+  .colab-row .rm{background:none;border:none;color:var(--rec);font-size:18px;cursor:pointer;padding:0 4px}
+  /* Assinatura na linha do colaborador */
+  .sign-box{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:7px;height:44px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;overflow:hidden}
+  .sign-box.signed{border-color:var(--ok);border-style:solid}
+  .sign-box img{max-height:40px;max-width:100%;object-fit:contain;background:#fff;border-radius:4px}
+  /* Foto da equipe */
+  .tp-btn{width:100%;background:var(--panel2);border:1.5px dashed var(--accent);color:var(--accent);padding:14px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer}
+  .tp-btn:disabled{border-color:var(--line);color:var(--muted);cursor:not-allowed}
+  .tp-hint{font-size:11.5px;color:var(--muted);margin:7px 0 0;line-height:1.4}
+  .tp-hint.ok{color:var(--ok);font-weight:600}
+  .tp-img{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
+  .tp-row{display:flex;gap:8px;margin-top:8px}
+  .tp-row button{flex:1;padding:10px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--txt)}
+  .tp-row .danger{color:var(--rec)}
+  /* Modal de assinatura */
+  .sigmodal{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;flex-direction:column;padding:16px;padding-top:calc(env(safe-area-inset-top) + 16px)}
+  .sigmodal.open{display:flex}.sigmodal h2{font-size:15px;margin:0 0 4px}
+  .sigmodal p{font-size:12px;color:var(--muted);margin:0 0 12px}
+  .sigmodal .padwrap{flex:1;border-radius:12px;border:1.5px solid var(--line);background:#fff;margin-bottom:12px;position:relative;overflow:hidden;touch-action:none}
+  .sigmodal canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+  .sigmodal .rrow{display:flex;gap:10px}.sigmodal .rrow .btn{margin:0}
+  .sigmodal .btn.clear{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  /* Câmera */
+  .cam-wrap{position:relative;border-radius:14px;overflow:hidden;background:#000;border:1px solid var(--line);aspect-ratio:3/4;max-height:56vh;margin:0 auto}
+  #video{width:100%;height:100%;object-fit:cover;display:block}
+  .cam-hud{position:absolute;left:10px;bottom:10px;right:10px;font-family:ui-monospace,monospace;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);line-height:1.5;pointer-events:none}
+  .cam-err{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:20px;color:#cfd6e0;font-size:13px}
+  .cam-controls{display:flex;align-items:center;justify-content:center;gap:24px;margin-top:16px}
+  .shutter{width:70px;height:70px;border-radius:50%;border:4px solid #fff;background:var(--rec);cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.35);transition:transform .1s}
+  .shutter:active{transform:scale(.92)}
+  .icon-btn{width:50px;height:50px;border-radius:50%;background:var(--panel);border:1px solid var(--line);color:var(--txt);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .cam-info{text-align:center;color:var(--muted);font-size:12px;margin-top:12px}
+  .gal-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+  .card img{width:100%;display:block;background:#dfe4ec}
+  .card-body{padding:10px 11px}
+  .meta{font-size:10px;color:var(--muted);font-family:ui-monospace,monospace;line-height:1.6;margin-bottom:8px}
+  .meta b{color:var(--txt)}
+  .card textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 9px;font-size:13px;resize:vertical;min-height:50px;outline:none;font-family:inherit}
+  .card textarea:focus{border-color:var(--accent)}
+  .card-actions{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+  .card-actions .num{font-size:10px;color:var(--muted);font-weight:700}
+  .del{background:none;border:none;color:var(--rec);font-size:12px;cursor:pointer;padding:5px}
+  .empty{text-align:center;color:var(--muted);padding:30px 20px;font-size:13px}
+  .summary{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px;margin-bottom:14px}
+  .summary .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .summary .row:last-child{border-bottom:none}.summary .row span:last-child{font-weight:700}
+  .opt{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:14px;font-size:13px}
+  .opt input{width:20px;height:20px;accent-color:var(--accent)}
+  .btn{width:100%;padding:14px;border-radius:11px;border:none;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
+  .btn.share{background:var(--accent);color:#fff}.btn.dl{background:var(--panel);color:var(--txt);border:1px solid var(--line)}
+  nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-shrink:0}
+  nav button{flex:1;background:none;border:none;color:var(--muted);padding:8px 1px 6px;font-size:9.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+  nav button .ic{font-size:18px}nav button.active{color:var(--accent);font-weight:700}
+  .tab-count{position:absolute;top:2px;right:12px;background:var(--rec);color:#fff;font-size:9px;font-weight:700;border-radius:9px;padding:0 4px;min-width:14px;text-align:center}
+  .review{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column;padding:16px;padding-top:calc(env(safe-area-inset-top) + 16px)}
+  .review.open{display:flex}.review h2{font-size:15px;margin:0 0 10px}
+  .review .prev{flex:1;overflow:auto;border-radius:12px;border:1px solid var(--line);background:#000;margin-bottom:12px}
+  .review .prev img{width:100%;display:block}
+  .review textarea{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px;font-size:14px;min-height:70px;resize:none;outline:none;font-family:inherit;margin-bottom:12px}
+  .review .rrow{display:flex;gap:10px}.review .rrow .btn{margin:0}
+  .btn.discard{background:var(--panel);color:var(--rec);border:1px solid var(--line)}.btn.save{background:var(--ok);color:#fff}
+  .toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:#1a2333;border:1px solid #2c3a52;color:#fff;padding:10px 16px;border-radius:24px;font-size:13px;z-index:90;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88%;text-align:center}
+  .toast.show{opacity:1}
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">DPL</div>
+  <h1>Relatório Diário<small id="teamLabel">selecione a equipe</small></h1>
+  <button class="team-chip" id="teamChip" onclick="openTeamSel()">EQUIPE ▾</button>
+  <div class="gps-badge"><span id="gpsDot" class="dot"></span><span id="gpsTxt">GPS…</span></div>
+</header>
+
+<!-- SELEÇÃO DE EQUIPE (abertura do app) -->
+<div class="teamsel" id="teamSel">
+  <div class="ts-box">
+    <div class="logo">DPL</div>
+    <h2>Qual é a sua equipe?</h2>
+    <p>A APR e o apontamento de atividades serão configurados de acordo com a equipe selecionada.</p>
+    <button class="ts-btn" onclick="chooseTeam('LM')"><span class="em">🔌</span><div>LINHA MORTA / EXP / MAN<small>Manutenção e expansão com rede desenergizada</small></div></button>
+    <button class="ts-btn" onclick="chooseTeam('LV')"><span class="em">⚡</span><div>LINHA VIVA<small>Manutenção em rede energizada — método linha viva</small></div></button>
+    <button class="ts-btn" onclick="chooseTeam('PODA')"><span class="em">🌳</span><div>PODA<small>Supressão de vegetação, limpeza de faixa e corte seletivo</small></div></button>
+    <button class="ts-close" id="tsClose" onclick="closeTeamSel()">✕ Cancelar (manter equipe atual)</button>
+  </div>
+</div>
+
+<main>
+  <!-- APR -->
+  <section id="viewApr" class="view active">
+    <div class="apr-title" id="aprTitle">Análise Preliminar de Riscos</div>
+    <div class="grp"><h3>APR — Identificação</h3>
+      <div class="row2"><div class="field"><label>Empresa</label><input data-a="empresa" type="text"></div>
+        <div class="field"><label>Equipe</label><input data-a="aEquipe" type="text"></div></div>
+      <div class="row2"><div class="field"><label>Data</label><input data-a="aData" type="date"></div>
+        <div class="field"><label>Horário</label><input data-a="aHorario" type="time"></div></div>
+      <div class="field"><label>Serviço</label><input data-a="aServico" type="text"></div>
+      <div class="row2"><div class="field"><label>N° da OS</label><input data-a="aOS" type="text"></div>
+        <div class="field"><label>Local / Endereço</label><input data-a="aLocal" type="text"></div></div>
+    </div>
+    <div id="aprList"></div>
+    <div class="grp"><h3>Croqui / Observações da APR</h3>
+      <div class="field"><textarea data-a="croqui" placeholder="Descreva o croqui, pontos de aterramento temporário e onde pode ocorrer energização acidental (ou fotografe o croqui na aba Evidências)"></textarea></div>
+    </div>
+    <div class="grp" id="grpResp"><h3>Responsáveis</h3>
+      <div class="field"><label id="lblRespA">Constatação da ausência de tensão</label><input data-a="respAusencia" type="text"></div>
+      <div class="field"><label id="lblRespB">Instalação do aterramento temporário</label><input data-a="respAterr" type="text"></div>
+    </div>
+    <div class="grp"><h3>Direito de Recusa</h3>
+      <div class="apr-note" id="aprNota" style="display:none"></div>
+      <div id="recusaBox"></div>
+      <div class="field" style="margin-top:8px"><label>Se recusa/observação, descrever</label><textarea data-a="recusaDesc"></textarea></div>
+    </div>
+    <div class="grp"><h3>Colaboradores da APR</h3>
+      <div id="colabList"></div>
+      <button class="btn-add" onclick="addColab()">＋ Adicionar colaborador</button>
+    </div>
+    <div class="grp"><h3>📸 Foto da Equipe</h3>
+      <div id="teamPhotoBox"></div>
+      <input type="file" id="teamPhotoInput" accept="image/*" capture="environment">
+    </div>
+  </section>
+
+  <!-- APONTAMENTO (dados do relatório + atividades) -->
+  <section id="viewApont" class="view">
+    <div class="grp"><h3>Identificação</h3>
+      <div class="field"><label>Obra / N°SI / NDS / Ocorrência</label><input data-f="obra" type="text"></div>
+      <div class="field"><label>Componente; N° Poste; Alimentador</label><input data-f="componente" type="text"></div>
+      <div class="field"><label>Endereço; Município</label><input data-f="endereco" type="text"></div>
+      <div class="row2"><div class="field"><label>Técnico</label><input data-f="tecnico" type="text"></div>
+        <div class="field"><label>Supervisão</label><input data-f="supervisao" type="text"></div></div>
+      <div class="row2"><div class="field"><label>Equipe</label><input data-f="equipe" type="text"></div>
+        <div class="field"><label>Equipe de Apoio</label><input data-f="equipeApoio" type="text"></div></div>
+    </div>
+    <div class="grp"><h3>Veículo / KM</h3>
+      <div class="row2"><div class="field"><label>Placa</label><input data-f="placa" type="text"></div>
+        <div class="field"><label>Data</label><input data-f="data" type="date"></div></div>
+      <div class="row2"><div class="field"><label>KM Inicial</label><input data-f="kmIni" type="number" inputmode="numeric"></div>
+        <div class="field"><label>KM Final</label><input data-f="kmFim" type="number" inputmode="numeric"></div></div>
+    </div>
+    <div class="grp"><h3>Horários</h3>
+      <div class="row2"><div class="field"><label>Início do Turno</label><input data-f="inicioTurno" type="time"></div>
+        <div class="field"><label>Fim de Turno</label><input data-f="fimTurno" type="time"></div></div>
+      <div class="row2"><div class="field"><label>Início Deslocamento</label><input data-f="inicioDesloc" type="time"></div>
+        <div class="field"><label>Chegada no Local</label><input data-f="chegadaLocal" type="time"></div></div>
+      <div class="row2"><div class="field"><label>Início Serviço</label><input data-f="inicioServico" type="time"></div>
+        <div class="field"><label>Término Serviço</label><input data-f="terminoServico" type="time"></div></div>
+      <div class="row2"><div class="field"><label>Início Refeição</label><input data-f="inicioRefeicao" type="time"></div>
+        <div class="field"><label>Término Refeição</label><input data-f="terminoRefeicao" type="time"></div></div>
+    </div>
+    <div class="grp"><h3 id="atvHeader">Atividades — Apontamento</h3>
+      <div class="search" style="position:static;padding:0;margin:0"><input id="busca" type="text" placeholder="🔍 Buscar por código ou descrição…"></div>
+    </div>
+    <div id="atvList"></div>
+    <div class="grp"><h3>Assinaturas / Observações</h3>
+      <div class="field"><label>Técnico Equatorial (nome)</label><input data-f="assTecnico" type="text"></div>
+      <div class="field"><label>Encarregado (nome)</label><input data-f="assEncarregado" type="text"></div>
+      <div class="field"><label>Observações</label><textarea data-f="obs"></textarea></div>
+      <button class="btn-ghost" onclick="novoRelatorio()">🗑️ Novo relatório (limpar tudo desta equipe)</button>
+    </div>
+  </section>
+
+  <!-- EVIDÊNCIAS -->
+  <section id="viewEvid" class="view">
+    <div class="cam-wrap">
+      <video id="video" playsinline autoplay muted></video>
+      <div class="cam-hud" id="camHud"></div>
+      <div class="cam-err" id="camErr">
+        <div style="font-size:40px">📷</div>
+        <div id="camErrMsg">Não foi possível acessar a câmera.</div>
+        <button class="btn dl" style="width:auto;padding:10px 18px;margin:0" onclick="fileInput.click()">Usar foto do aparelho</button>
+      </div>
+    </div>
+    <div class="cam-controls">
+      <button class="icon-btn" title="Trocar câmera" onclick="switchCamera()">🔄</button>
+      <button class="shutter" onclick="capture()" title="Capturar"></button>
+      <button class="icon-btn" title="Importar foto" onclick="fileInput.click()">🖼️</button>
+    </div>
+    <div class="cam-info">Cada foto grava <b>data, hora e GPS</b> na imagem. Toque na foto salva para escrever o comentário.</div>
+    <input type="file" id="fileInput" accept="image/*" capture="environment">
+    <div class="gal-grid" id="galList"></div>
+    <div id="galEmpty" class="empty">Nenhuma evidência capturada ainda.</div>
+  </section>
+
+  <!-- PDF -->
+  <section id="viewPdf" class="view">
+    <div class="summary" id="summary"></div>
+    <label class="opt"><input type="checkbox" id="optTodos"> Incluir <b>todos</b> os códigos de atividade no PDF (como a ficha impressa). Desmarcado = só os apontados.</label>
+    <button class="btn share" onclick="exportPDF(true)">📤 Gerar e compartilhar PDF (Relatório + APR + Fotos)</button>
+    <button class="btn dl" onclick="exportPDF(false)">⬇️ Baixar PDF</button>
+  </section>
+</main>
+
+<nav>
+  <button id="tabApr" class="active" onclick="showView('Apr')"><span class="ic">⚠️</span>APR</button>
+  <button id="tabApont" onclick="showView('Apont')"><span class="ic">📋</span>Apontamento<span id="cntAtiv" class="tab-count" style="display:none">0</span></button>
+  <button id="tabEvid" onclick="showView('Evid')"><span class="ic">📷</span>Evidências<span id="cntEvid" class="tab-count" style="display:none">0</span></button>
+  <button id="tabPdf" onclick="showView('Pdf')"><span class="ic">📄</span>PDF</button>
+</nav>
+
+<div class="review" id="review">
+  <h2>Comentário da evidência</h2>
+  <div class="prev"><img id="reviewImg" alt=""></div>
+  <textarea id="reviewNote" placeholder="Comentário da foto (ex.: poste 12 — estrutura N1 instalada)"></textarea>
+  <div class="rrow"><button class="btn discard" onclick="discardCapture()">Descartar</button><button class="btn save" onclick="saveCapture()">Salvar</button></div>
+</div>
+
+<div class="sigmodal" id="sigModal">
+  <h2>Assinatura digital</h2>
+  <p>Assine no quadro abaixo com o dedo ou o mouse.</p>
+  <div class="padwrap" id="sigPad"
+    onmousedown="sigStart(event)" onmousemove="sigMove(event)" onmouseup="sigEnd(event)" onmouseleave="sigEnd(event)"
+    ontouchstart="sigStart(event)" ontouchmove="sigMove(event)" ontouchend="sigEnd(event)">
+    <canvas id="sigCanvas"></canvas>
+  </div>
+  <div class="rrow"><button class="btn clear" onclick="clearSign()">Limpar</button><button class="btn discard" onclick="closeSign()">Cancelar</button><button class="btn save" onclick="saveSign()">Salvar</button></div>
+</div>
+
+<canvas id="canvas" style="display:none"></canvas>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ═══════════ ATIVIDADES POR EQUIPE ═══════════ */
+/* LINHA MORTA / EXP / MAN (ficha de apontamento LM) */
+const CATS_LM=['ATIVIDADE DE POSTE, ESTAI E MANILHA','ATIVIDADE DE ESTRUTURAS PRIMÁRIA E SECUNDÁRIA','ATIVIDADE DE EQUIPAMENTOS','ATIVIDADE DE ATERRAMENTO','ATIVIDADES DE CONDUTORES E CONEXÕES','ATIVIDADES DE ESPAÇADORES','ATIVIDADES DE LIGAÇÕES DE CLIENTES','ATIVIDADE DIVERSAS'];
+const ATV_LM=[
+ {c:0,cod:'5020100055',d:'ABRIR CAVA ROCHA C/ EQUIPAMENTO ESPEC LM',u:'UN'},{c:0,cod:'5020000092',d:'INST POSTE CONCRETO ATE 14M LM',u:'UN'},
+ {c:0,cod:'5020000098',d:'INST POSTE DE FIBRA 7 A 19M LM',u:'UN'},{c:0,cod:'5020000118',d:'RET POSTE DE MADEIRA LM',u:'UN'},
+ {c:0,cod:'5020000093',d:'RET POSTE CONCRETO ATE 14M LM',u:'UN'},{c:0,cod:'5020200034',d:'INST ESTAI ANCORA LM',u:'UN'},
+ {c:0,cod:'5020200035',d:'RET ESTAI ANCORA LM',u:'CJ'},{c:0,cod:'5020200039',d:'TENSIONAR ESTAI LM',u:'CJ'},
+ {c:0,cod:'5020000106',d:'APRUMAR POSTE CONC/FIBRA LM',u:'CJ'},{c:0,cod:'5020000105',d:'ADICIONAL EXEC MAN ATIV EQUIP/POSTE LM',u:'UN'},
+ {c:0,cod:'5020100058',d:'BASE CONCRETO C/ MANILHA PARA POSTE LM',u:'UN'},{c:0,cod:'5020100056',d:'BASE CONCRETO 1CAMADA PARA POSTE LM',u:'UN'},
+ {c:0,cod:'5020100057',d:'BASE CONCRETO 2CAMADAS PARA POSTE LM',u:'UN'},{c:0,cod:'5020000107',d:'RESTAURAR PASSEIO SIMPLES CIMENTADO LM',u:'UN'},
+ {c:0,cod:'5020000108',d:'RESTAURAR PASSEIO ESPECIAL PEDRA PORT LM',u:'UN'},
+ {c:1,cod:'5021000158',d:'INST ESTR PRI RDC PASSANTE SIMPLES LM (CE1/CE2)',u:'CJ'},{c:1,cod:'5021000160',d:'INST ESTR PRI RDC ANCORAGEM SIMPLES LM (CE3)',u:'CJ'},
+ {c:1,cod:'5021000162',d:'INST ESTR PRI RDC ANCORAGEM DUPLA LM (CE4)',u:'CJ'},{c:1,cod:'5021000159',d:'RET ESTR PRI RDC PASSANTE SIMPLES LM (CE1/CE2)',u:'CJ'},
+ {c:1,cod:'5021000161',d:'RET ESTR PRI RDC ANCORAGEM SIMPLES LM (CE3)',u:'CJ'},{c:1,cod:'5021000163',d:'RET ESTR PRI RDC ANCORAGEM DUPLA LM (CE4)',u:'CJ'},
+ {c:1,cod:'5021000139',d:'INST ESTR PRI 1F SUSP/PAS SP S/CRUZ LM (U1)',u:'CJ'},{c:1,cod:'5021000141',d:'INST ESTR PRI 1F SUSP/PAS DP S/CRUZ LM (U2)',u:'CJ'},
+ {c:1,cod:'5021000143',d:'INST ESTR PRI 1F ANC/AMA SP S/CRUZ LM (U3)',u:'CJ'},{c:1,cod:'5021000145',d:'INST ESTR PRI 1F ANC/AMA DP S/CRUZ LM (U4)',u:'CJ'},
+ {c:1,cod:'5021000140',d:'RET ESTR PRI 1F SUSP/PAS SP S/CRUZ LM (U1)',u:'CJ'},{c:1,cod:'5021000142',d:'RET ESTR PRI 1F SUSP/PAS DP S/CRUZ LM (U2)',u:'CJ'},
+ {c:1,cod:'5021000144',d:'RET ESTR PRI 1F ANC/AMA SP S/CRUZ LM (U3)',u:'CJ'},{c:1,cod:'5021000146',d:'RET ESTR PRI 1F ANC/AMA DP S/CRUZ LM (U4)',u:'CJ'},
+ {c:1,cod:'5021000131',d:'INST ESTR PRI 2/3F SUS/PAS SP CRUZ SP LM (N1/B1)',u:'CJ'},{c:1,cod:'5021000133',d:'INST ESTR PRI 2/3F SUS/PAS DP CRUZ DP LM (N2/B2)',u:'CJ'},
+ {c:1,cod:'5021000135',d:'INST ESTR PRI 2/3F ANC/AMA SP CRUZ DP LM (N3/B3)',u:'CJ'},{c:1,cod:'5021000137',d:'INST ESTR PRI 2/3F ANC/AMA DP CRUZ DP LM (N4/B4)',u:'CJ'},
+ {c:1,cod:'5021000132',d:'RET ESTR PRI 2/3F SUS/PAS SP CRUZ SP LM (N1/B1)',u:'CJ'},{c:1,cod:'5021000134',d:'RET ESTR PRI 2/3F SUS/PAS DP CRUZ DP LM (N2/B2)',u:'CJ'},
+ {c:1,cod:'5021000136',d:'RET ESTR PRI 2/3F ANC/AMA SP CRUZ DP LM (N3/B3)',u:'CJ'},{c:1,cod:'5021000138',d:'RET ESTR PRI 2/3F ANC/AMA DP CRUZ DP LM (N4/B4)',u:'CJ'},
+ {c:1,cod:'5021100014',d:'INST ESTRUTURA SECUNDARIA LM',u:'UN'},{c:1,cod:'5021100015',d:'RET ESTRUTURA SECUNDARIA LM',u:'UN'},{c:1,cod:'5025300111',d:'OPERAR CHAVE/GRAMPO LV LM',u:'CJ'},
+ {c:2,cod:'5025300101',d:'INST PLACA IDENTIFICACAO COMPONENTE LM',u:'UN'},{c:2,cod:'5025300172',d:'INST CHAVE FUSIVEL 15/25KV LM',u:'UN'},
+ {c:2,cod:'5025300176',d:'INST CHAVE FACA LM',u:'UN'},{c:2,cod:'5025300166',d:'INST CHAVE FUSIVEL RELIG LM',u:'UN'},
+ {c:2,cod:'5025300139',d:'INST TRAFO DT POSTE/PLATAF 1/2F LM',u:'UN'},{c:2,cod:'5025300141',d:'INST TRAFO DT POSTE/PLATAF 3F LM',u:'UN'},
+ {c:2,cod:'5025300162',d:'INST PARA-RAIOS MT LM',u:'UN'},{c:2,cod:'5025300160',d:'INST PARA-RAIOS BT LM',u:'CJ'},
+ {c:2,cod:'5025300120',d:'INST RELIGADOR/SECCIONADOR 3F LM',u:'UN'},{c:2,cod:'5025300124',d:'INST REGULADOR TENSAO POSTE/PLATAF LM',u:'UN'},
+ {c:2,cod:'5025300129',d:'INST CELULAR CAPACITOR LM',u:'UN'},{c:2,cod:'5025300180',d:'INST CHAVE BY-PASS LM',u:'UN'},
+ {c:2,cod:'5025300173',d:'RET CHAVE FUSIVEL 15/25KV LM',u:'UN'},{c:2,cod:'5025300177',d:'RET CHAVE FACA LM',u:'UN'},
+ {c:2,cod:'5025300167',d:'RET CHAVE FUSIVEL RELIG LM',u:'UN'},{c:2,cod:'5025300140',d:'RET TRAFO DT POSTE/PLATAF 1/2F LM',u:'UN'},
+ {c:2,cod:'5025300142',d:'RET TRAFO DT POSTE/PLATAF 3F LM',u:'UN'},{c:2,cod:'5025300163',d:'RET PARA-RAIOS MT LM',u:'UN'},
+ {c:2,cod:'5025300161',d:'RET PARA-RAIOS BT LM',u:'CJ'},{c:2,cod:'5025300121',d:'RET RELIGADOR/SECCIONADOR 3F LM',u:'UN'},
+ {c:2,cod:'5025300125',d:'RET REGULADOR TENSAO POSTE/PLATAF LM',u:'UN'},{c:2,cod:'5025300130',d:'RET CELULAR CAPACITOR LM',u:'UN'},{c:2,cod:'5025300181',d:'RET CHAVE BY-PASS LM',u:'UN'},
+ {c:3,cod:'5022200033',d:'INST ATERRAMENTO COMPL 1HASTE LM',u:'CJ'},{c:3,cod:'5022200035',d:'INST 1HASTE ADICIONAL ATERRAMENTO LM',u:'UN'},
+ {c:3,cod:'5022200037',d:'INST SECCION E ATERRAM CERCA LM',u:'CJ'},{c:3,cod:'5022200038',d:'RET SECCION E ATERRAM CERCA LM',u:'CJ'},
+ {c:4,cod:'5022000262',d:'INST COND 2PLEX BT 1X10(10)-1X35(35) LM',u:'M'},{c:4,cod:'5022000263',d:'RET COND 2PLEX BT 1X10(10)-1X35(35) LM',u:'M'},
+ {c:4,cod:'5022000266',d:'INST COND 4PLEX BT 3X10(10)-3X120(70) LM',u:'M'},{c:4,cod:'5022000267',d:'RET COND 4PLEX BT 3X10(10)-3X120(70) LM',u:'M'},
+ {c:4,cod:'5022000242',d:'TENSIONAR COND NU ALUMINIO <= 1/0 LM',u:'UN'},{c:4,cod:'5022000236',d:'INST COND NU ALUMINIO <= 1/0 LM',u:'M'},
+ {c:4,cod:'5022000237',d:'RET COND NU ALUMINIO <= 1/0 LM',u:'M'},{c:4,cod:'5022000241',d:'TENSIONAR COND NU ALUMINIO > 1/0 LM',u:'UN'},
+ {c:4,cod:'5022000234',d:'INST COND NU ALUMINIO > 1/0 LM',u:'M'},{c:4,cod:'5022000235',d:'RET COND NU ALUMINIO > 1/0 LM',u:'M'},
+ {c:4,cod:'5022000276',d:'INST COND COBERTO RDC 35-70 MM2 LM',u:'M'},{c:4,cod:'5022000277',d:'RET COND COBERTO RDC 35-70 MM2 LM',u:'M'},
+ {c:4,cod:'5022000278',d:'INST COND COBERTO RDC 95-185 MM2 LM',u:'M'},{c:4,cod:'5022000279',d:'RET COND COBERTO RDC 95-185 MM2 LM',u:'M'},
+ {c:4,cod:'5022000283',d:'TENSIONAR COND PROTEGIDO RDC LM',u:'UN'},{c:4,cod:'5022000280',d:'INST CABO MENSAGEIRO RDC LM',u:'M'},
+ {c:4,cod:'5022000281',d:'RET CABO MENSAGEIRO RDC LM',u:'M'},{c:4,cod:'5022000282',d:'TENSIONAR COND MENSAGEIRO RDC LM',u:'UN'},
+ {c:4,cod:'5022000245',d:'INST JUMPER EM CONDUTOR LM',u:'UN'},{c:4,cod:'5022000246',d:'RET JUMPER EM CONDUTOR LM',u:'UN'},
+ {c:4,cod:'5022000238',d:'INST EMENDA COND NU AL/CU LM',u:'UN'},{c:4,cod:'5022000274',d:'INST EMENDA COND MULTIPLEXADO LM',u:'UN'},
+ {c:4,cod:'5022000286',d:'INST CONEX OU EMENDA DE CABO RDC LM',u:'UN'},{c:4,cod:'5024000072',d:'INST CONEXAO RAMAL DE CONEXAO LM',u:'UN'},
+ {c:4,cod:'5024000073',d:'RET CONEXAO RAMAL DE CONEXAO LM',u:'UN'},{c:4,cod:'5024000074',d:'TENSIONAR RAMAL DE CONEXAO LM',u:'UN'},
+ {c:4,cod:'5025300103',d:'INST ILUMINACAO PUBLICA LM',u:'CJ'},{c:4,cod:'5025300104',d:'RET ILUMINACAO PUBLICA LM',u:'CJ'},
+ {c:5,cod:'5022000252',d:'INST ESPACADOR/AFASTADOR REDE PRI/SEC LM',u:'UN'},{c:5,cod:'5022000253',d:'RET ESPACADOR/AFASTADOR REDE PRI/SEC LM',u:'UN'},
+ {c:5,cod:'5022000284',d:'INST ESPACADOR LOSANGULAR RDC LM',u:'UN'},{c:5,cod:'5022000285',d:'RET ESPACADOR LOSANGULAR RDC LM',u:'UN'},
+ {c:6,cod:'5024000062',d:'INST MEDIDOR ELETRONICO LM',u:'UN'},{c:6,cod:'5024000064',d:'INST RAMAL DE CONEXAO CONC/MULTIPLEX LM',u:'UN'},
+ {c:6,cod:'5020000119',d:'INST POSTE MET QUAD 5 OU 7M RD LM',u:'UN'},{c:6,cod:'5024000068',d:'INST PADRAO ENTRADA COMPLETO LM (LPT)',u:'CJ'},
+ {c:7,cod:'5022000256',d:'RETIRAR OBJETO ESTRANHO REDE LM',u:'UN'},{c:7,cod:'5035000058',d:'PODA ARV GRANDE PT >=12M LAT 2GL PO LM',u:'UN'},
+ {c:7,cod:'5035000060',d:'PODA ARV MEDIO PT >6<12M LATER 2ML PO LM',u:'UN'},{c:7,cod:'5035000064',d:'PODA ARV <6M REDE BT CENTRAL 2PC PO LM',u:'UN'},
+];
+
+/* LINHA VIVA (Relatório Execução Serviços — Processo de Manutenção Linha Viva) */
+const CATS_LV=['SERVIÇOS COM APOIO LINHA MORTA','SERVIÇOS EM ESTRUTURAS PRIMÁRIAS','SERVIÇOS EM CONDUTORES E CONEXÕES','SERVIÇOS EM CHAVES E EQUIPAMENTOS','OUTROS SERVIÇOS'];
+const ATV_LV=[
+ {c:0,cod:'5031200338',d:'TURMA LV INST POSTE ESTRUT PRIMARIA LV',u:'UN'},{c:0,cod:'5031200339',d:'TURMA LV RET POSTE ESTRUT PRIMARIA LV',u:'UN'},
+ {c:0,cod:'5030000065',d:'TURMA LV INST POSTE RELIGADOR/SECION LV',u:'UN'},{c:0,cod:'5030000066',d:'TURMA LV RET POSTE RELIGADOR/SECION LV',u:'UN'},
+ {c:0,cod:'5030000069',d:'TURMA LV INST POSTE REGULADOR TENSAO LV',u:'UN'},{c:0,cod:'5030000070',d:'TURMA LV RET POSTE REGULADOR TENSAO LV',u:'UN'},
+ {c:0,cod:'5030000071',d:'TURMA LV INST POSTE BCO CAPACITOR LV',u:'UN'},{c:0,cod:'5030000072',d:'TURMA LV RET POSTE BCO CAPACITOR LV',u:'UN'},
+ {c:0,cod:'5030000067',d:'TURMA LV INST POSTE CHAVE SEC SECO 3F LV',u:'UN'},{c:0,cod:'5030000068',d:'TURMA LV RET POSTE CHAVE SEC SECO 3F LV',u:'UN'},
+ {c:1,cod:'5031200310',d:'INST ESTR PRI 2/3F SUS/PAS SP CRUZ SP LV (N1/B1)',u:'CJ'},{c:1,cod:'5031200312',d:'INST ESTR PRI 2/3F SUS/PAS DP CRUZ DP LV (N2/B2)',u:'CJ'},
+ {c:1,cod:'5031200314',d:'INST ESTR PRI 2/3F ANC/AMA SP CRUZ DP LV (N3/B3)',u:'CJ'},{c:1,cod:'5031200316',d:'INST ESTR PRI 2/3F ANC/AMA DP CRUZ DP LV (N4/B4)',u:'CJ'},
+ {c:1,cod:'5031200311',d:'RET ESTR PRI 2/3F SUS/PAS SP CRUZ SP LV (N1/B1)',u:'CJ'},{c:1,cod:'5031200313',d:'RET ESTR PRI 2/3F SUS/PAS DP CRUZ DP LV (N2/B2)',u:'CJ'},
+ {c:1,cod:'5031200315',d:'RET ESTR PRI 2/3F ANC/AMA SP CRUZ DP LV (N3/B3)',u:'CJ'},{c:1,cod:'5031200317',d:'RET ESTR PRI 2/3F ANC/AMA DP CRUZ DP LV (N4/B4)',u:'CJ'},
+ {c:1,cod:'5031200347',d:'INST ESTR PRI RDC PASSANTE SIMPLES LV (CE1/CE2)',u:'CJ'},{c:1,cod:'5031200349',d:'INST ESTR PRI RDC ANCORAGEM SIMPLES LV (CE3)',u:'CJ'},
+ {c:1,cod:'5031200351',d:'INST ESTR PRI RDC ANCORAGEM DUPLA LV (CE4)',u:'CJ'},{c:1,cod:'5031200348',d:'RET ESTR PRI RDC PASSANTE SIMPLES LV (CE1/CE2)',u:'CJ'},
+ {c:1,cod:'5031200350',d:'RET ESTR PRI RDC ANCORAGEM SIMPLES LV (CE3)',u:'CJ'},{c:1,cod:'5031200352',d:'RET ESTR PRI RDC ANCORAGEM DUPLA LV (CE4)',u:'CJ'},
+ {c:1,cod:'5021000139',d:'INST ESTR PRI 1F SUSP/PAS SP S/CRUZ LV (U1)',u:'CJ'},{c:1,cod:'5031200320',d:'INST ESTR PRI 1F SUSP/PAS DP S/CRUZ LV (U2)',u:'CJ'},
+ {c:1,cod:'5031200322',d:'INST ESTR PRI 1F ANC/AMA SP S/CRUZ LV (U3)',u:'CJ'},{c:1,cod:'5031200324',d:'INST ESTR PRI 1F ANC/AMA DP S/CRUZ LV (U4)',u:'CJ'},
+ {c:1,cod:'5031200319',d:'RET ESTR PRI 1F SUSP/PAS SP S/CRUZ LV (U1)',u:'CJ'},{c:1,cod:'5031200321',d:'RET ESTR PRI 1F SUSP/PAS DP S/CRUZ LV (U2)',u:'CJ'},
+ {c:1,cod:'5031200323',d:'RET ESTR PRI 1F ANC/AMA SP S/CRUZ LV (U3)',u:'CJ'},{c:1,cod:'5031200325',d:'RET ESTR PRI 1F ANC/AMA DP S/CRUZ LV (U4)',u:'CJ'},
+ {c:1,cod:'5031200340',d:'NIVELAR CRUZETA LV',u:'UN'},{c:1,cod:'5031300110',d:'INST ISOLADOR PINO/PILAR LV',u:'UN'},
+ {c:1,cod:'5031300111',d:'RET ISOLADOR PINO/PILAR LV',u:'UN'},{c:1,cod:'5031300112',d:'INST ISOLAD DISCO/ANCORAGEM LV',u:'CJ'},
+ {c:1,cod:'5031300113',d:'RET ISOLAD DISCO/ANCORAGEM LV',u:'CJ'},{c:1,cod:'5032000208',d:'INST CONECTOR EM CONDUTOR LV',u:'UN'},
+ {c:1,cod:'5032000209',d:'RET CONECTOR EM CONDUTOR LV',u:'UN'},{c:1,cod:'5032000214',d:'INST AMARRACAO COND NU/MULTIP/PROTEG LV',u:'UN'},
+ {c:2,cod:'5032000207',d:'INST EMENDA COND NU AL/CU LV',u:'UN'},{c:2,cod:'5032000204',d:'INST COND NU ALUMINIO <= 1/0 LV',u:'M'},
+ {c:2,cod:'5032000202',d:'INST COND NU ALUMINIO > 1/0 LV',u:'M'},{c:2,cod:'5032000205',d:'RET COND NU ALUMINIO <= 1/0 LV',u:'M'},
+ {c:2,cod:'5032000203',d:'RET COND NU ALUMINIO > 1/0 LV',u:'M'},{c:2,cod:'5032000236',d:'TENSIONAR COND NU ALUMINIO/COBRE LV',u:'UN'},
+ {c:2,cod:'5032000224',d:'INST COND COBERTO RDC 35-70 MM2 LV',u:'M'},{c:2,cod:'5032000226',d:'INST COND COBERTO RDC 95-185 MM2 LV',u:'M'},
+ {c:2,cod:'5032000225',d:'RET COND COBERTO RDC 35-70 MM2 LV',u:'M'},{c:2,cod:'5032000227',d:'RET COND COBERTO RDC 95-185 MM2 LV',u:'M'},
+ {c:2,cod:'5032000231',d:'TENSIONAR COND PROTEGIDO RDC LV',u:'UN'},{c:2,cod:'5032000228',d:'INST CABO MENSAGEIRO RDC LV',u:'M'},
+ {c:2,cod:'5032000229',d:'RET CABO MENSAGEIRO RDC LV',u:'M'},{c:2,cod:'5032000230',d:'TENSIONAR COND MENSAGEIRO RDC LV',u:'UN'},
+ {c:2,cod:'5030000075',d:'INST ESTAI AEREO LV',u:'UN'},{c:2,cod:'5030000076',d:'RET ESTAI AEREO LV',u:'UN'},
+ {c:2,cod:'5030000077',d:'TENSIONAR ESTAI LV',u:'CJ'},{c:2,cod:'5032000215',d:'INST FLY TAP/CRUZAM AEREO COND NU LV',u:'UN'},
+ {c:2,cod:'5032000216',d:'RET FLY TAP/CRUZAM AEREO COND NU LV',u:'UN'},{c:2,cod:'5032000210',d:'INST JUMPER EM CONDUTOR LV',u:'UN'},
+ {c:2,cod:'5032000211',d:'RET JUMPER EM CONDUTOR LV',u:'UN'},{c:2,cod:'5032000232',d:'INST ESPACADOR LOSANGULAR RDC LV',u:'UN'},
+ {c:2,cod:'5032000233',d:'RET ESPACADOR LOSANGULAR RDC LV',u:'UN'},{c:2,cod:'5032000219',d:'INST ESTRIBO OU GRAMPO LV RD LV',u:'UN'},
+ {c:2,cod:'5032000220',d:'RET ESTRIBO OU GRAMPO LV RD LV',u:'UN'},
+ {c:3,cod:'5033000318',d:'INST PARA-RAIOS MT LV',u:'UN'},{c:3,cod:'5033000319',d:'RET PARA-RAIOS MT LV',u:'UN'},
+ {c:3,cod:'5033000292',d:'INST CHAVE FUSIVEL 15/25KV LV',u:'UN'},{c:3,cod:'5033000293',d:'RET CHAVE FUSIVEL 15/25KV LV',u:'UN'},
+ {c:3,cod:'5033000296',d:'INST CHAVE FACA LV',u:'UN'},{c:3,cod:'5033000297',d:'RET CHAVE FACA LV',u:'UN'},
+ {c:3,cod:'5033000306',d:'INST CHAVE BY-PASS LV',u:'UN'},{c:3,cod:'5033000307',d:'RET CHAVE BY-PASS LV',u:'UN'},
+ {c:3,cod:'5033000300',d:'INST CHAVE FUSIVEL RELIG LV',u:'UN'},{c:3,cod:'5033000301',d:'RET CHAVE FUSIVEL RELIG LV',u:'UN'},
+ {c:3,cod:'5022000261',d:'VERIFICAR SEQUENCIA DE FASE (BT OU MT)',u:'UN'},{c:3,cod:'5025300101',d:'INST PLACA IDENTIFICACAO COMPONENTE',u:'UN'},
+ {c:4,cod:'5032000221',d:'RETIRAR OBJETO ESTRANHO REDE LV',u:'UN'},{c:4,cod:'5035000058',d:'PODA ARV GRANDE PT >=12M LAT 2GL PO LV',u:'UN'},
+ {c:4,cod:'5035000060',d:'PODA ARV MEDIO PT >6<12M LATER 2ML PO LV',u:'UN'},{c:4,cod:'5035000064',d:'PODA ARV <6M REDE BT CENTRAL 2PC PO LV',u:'UN'},
+];
+
+/* PODA (Relatório de Atividades PODA) */
+const CATS_PODA=['ATIVIDADES PODA LM','ATIVIDADES PODA LM — ELIMINAÇÃO','ATIVIDADES PODA LV','ATIVIDADES PODA LV — ELIMINAÇÃO','ATIVIDADE DE ESPAÇADOR'];
+const ATV_PODA=[
+ {c:0,cod:'5026000037',d:'PODA ARV <6M REDE BT CENTRAL 2PC PO LM',u:'UN'},{c:0,cod:'5026000014',d:'PODA ARV BAMBU CORTE REBAIX BAM PO LM',u:'M'},
+ {c:0,cod:'5026000015',d:'PODA ARV GRANDE PT >=12M ELEV 2GE PO LM',u:'UN'},{c:0,cod:'5026000016',d:'PODA ARV GRANDE PT >=12M LAT 2GL PO LM',u:'UN'},
+ {c:0,cod:'5026000017',d:'PODA ARV MEDIO PT >6<12M ELEV 2ME PO LM',u:'UN'},{c:0,cod:'5026000018',d:'PODA ARV MEDIO PT >6<12M LATER 2ML PO LM',u:'UN'},
+ {c:0,cod:'5026000019',d:'PODA ARV MEDIO PT>6<12M REBAIX 2MR PO LM',u:'UN'},{c:0,cod:'5026000021',d:'PODA ARV PEQ PT <=6M LATER 2PL PO LM',u:'UN'},
+ {c:0,cod:'5026000022',d:'PODA ARV PEQ PT <=6M REBAIX 2PR PO LM',u:'UN'},{c:0,cod:'5026000039',d:'PODA ARV>6<12M REDE BT CENTRAL 2MC PO LM',u:'UN'},
+ {c:0,cod:'5026000040',d:'PODA GRAM>6<12M REDE MT REBAIX 3MR PO LM',u:'M'},{c:0,cod:'5026000041',d:'PODA GRAMINEA >12M REDE MT LAT 3GL PO LM',u:'M'},
+ {c:0,cod:'5026000035',d:'PODA PALMEIRA >12M REDE MT LAT 1GL PO LM',u:'UN'},{c:0,cod:'5026000028',d:'PODA PALMEIRA<6M REDE BT LATER 1PL PO LM',u:'UN'},
+ {c:0,cod:'5026000034',d:'PODA PALMEIRA>6<12M RED MT LAT 1ML PO LM',u:'UN'},{c:0,cod:'5026000033',d:'ROCO VEGET >6<12M REDE MT ROCO PO LM',u:'M'},
+ {c:1,cod:'5026000012',d:'ELIMINAR RAMA TREPADEIRA TRP PO LM',u:'UN'},{c:1,cod:'5026000009',d:'ELIMINAR ARV GRANDE PORTE 2GS PO LM',u:'UN'},
+ {c:1,cod:'5026000010',d:'ELIMINAR ARV MEDIO PORTE 2MS PO LM',u:'UN'},{c:1,cod:'5026000011',d:'ELIMINAR ARV PEQUENO PORTE 2PS PO LM',u:'UN'},
+ {c:2,cod:'5035000064',d:'PODA ARV <6M REDE BT CENTRAL 2PC PO LV',u:'UN'},{c:2,cod:'5035000071',d:'PODA ARV BAMBU CORTE REBAIX BAM PO LV',u:'M'},
+ {c:2,cod:'5035000057',d:'PODA ARV GRANDE PT >=12M ELEV 2GE PO LV',u:'UN'},{c:2,cod:'5035000058',d:'PODA ARV GRANDE PT >=12M LAT 2GL PO LV',u:'UN'},
+ {c:2,cod:'5035000059',d:'PODA ARV MEDIO PT >6<12M ELEV 2ME PO LV',u:'UN'},{c:2,cod:'5035000060',d:'PODA ARV MEDIO PT >6<12M LATER 2ML PO LV',u:'UN'},
+ {c:2,cod:'5035000061',d:'PODA ARV MEDIO PT>6<12M REBAIX 2MR PO LV',u:'UN'},{c:2,cod:'5035000062',d:'PODA ARV PEQ PT <=6M LATER 2PL PO LV',u:'UN'},
+ {c:2,cod:'5035000063',d:'PODA ARV PEQ PT <=6M REBAIX 2PR PO LV',u:'UN'},{c:2,cod:'5035000065',d:'PODA ARV>6<12M REDE BT CENTRAL 2MC PO LV',u:'UN'},
+ {c:2,cod:'5035000069',d:'PODA GRAM>6<12M REDE MT REBAIX 3MR PO LV',u:'M'},{c:2,cod:'5035000070',d:'PODA GRAMINEA >12M REDE MT LAT 3GL PO LV',u:'M'},
+ {c:2,cod:'5035000068',d:'PODA PALMEIRA >12M REDE MT LAT 1GL PO LV',u:'UN'},
+ {c:3,cod:'5035000053',d:'ELIMINAR RAMA TREPADEIRA TRP PO LV',u:'UN'},{c:3,cod:'5035000054',d:'ELIMINAR ARV GRANDE PORTE 2GS PO LV',u:'UN'},
+ {c:3,cod:'5035000055',d:'ELIMINAR ARV MEDIO PORTE 2MS PO LV',u:'UN'},{c:3,cod:'5035000056',d:'ELIMINAR ARV PEQUENO PORTE 2PS PO LV',u:'UN'},
+ {c:3,cod:'5025300111',d:'OPERAR CHAVE/GRAMPO LV LM',u:'CJ'},
+ {c:4,cod:'5022000284',d:'INST ESPACADOR LOSANGULAR RDC LM',u:'UN'},{c:4,cod:'5022000252',d:'INST ESPACADOR/AFASTADOR REDE PRI/SEC LM',u:'UN'},
+ {c:4,cod:'5022000285',d:'RET ESPACADOR LOSANGULAR RDC LM',u:'UN'},{c:4,cod:'5022000253',d:'RET ESPACADOR/AFASTADOR REDE PRI/SEC LM',u:'UN'},
+];
+
+/* ═══════════ APR POR EQUIPE ═══════════ */
+/* LINHA MORTA / EXP / MAN */
+const APR_LM=[
+ {t:'Risco de acidente de trânsito',q:[
+  {id:'t1',n:'1',p:'Será necessário reposicionar o veículo para maior segurança?',c:['Manobrar veículo de auxílio conforme CTB e POP 00110 EQTL']},
+  {id:'t2',n:'2',p:'Existe risco de colisão?',c:['Sinalizar veículo com cone e ligar pisca-alerta (POP 00110 EQTL)']},
+  {id:'t3',n:'3',p:'Existe risco de atropelamento?',c:['Ficar atento ao fluxo e não usar celular/PDA/tablet na via','Não dar passos para trás em direção à via','Fazer corredor seguro para pedestre']},
+  {id:'t4',n:'4',p:'Existe o risco do veículo deslocar-se acidentalmente?',c:['Manter freio estacionário acionado e calçar as rodas (POP 00110 EQTL)']}]},
+ {t:'Risco de ataque de animais',q:[
+  {id:'an5',n:'5',p:'Existe casa de abelhas, marimbondos ou similar no local ou proximidades?',c:['Não atacar a casa de abelhas/marimbondos','Utilizar vestimenta de apicultor para remoção','Utilizar luvas de vaqueta']},
+  {id:'an6',n:'6',p:'Existe risco de ataque de animais?',c:['Não se aproximar, agredir ou brincar com o animal','Utilizar calçado de segurança, perneira, luvas de vaqueta e vestimenta adequada']}]},
+ {t:'Riscos do local de trabalho no solo',q:[
+  {id:'s7',n:'7',p:'Local/entorno irregular, com desníveis, buracos, obstáculos ou superfície lisa (queda/tropeço/escorregão)?',c:['Utilizar botina de segurança devidamente calçada','Ficar atento por onde pisa, não correr/saltar (POP 00110 EQTL)','Não caminhar usando celular/tablet/PDA']},
+  {id:'s8',n:'8',p:'Local/entorno possui objetos cortantes e perfurantes?',c:['Remover objetos com luvas de vaqueta','Caminhar atento e utilizar calçado de segurança']},
+  {id:'s9',n:'9',p:'Risco de contato com superfície abrasiva/cortante no manuseio de ferramentas e materiais?',c:['Guardar e transportar ferramentas de corte em bainha','Utilizar luvas de vaqueta contra corte/perfuração']}]},
+ {t:'Acesso à carroceria e cabine suplementar',q:[
+  {id:'c10',n:'10',p:'Risco de queda na subida/descida da carroceria do caminhão?',c:['Não saltar da carroceria','Usar escada móvel instalada para subir/descer','Manter 3 pontos de apoio na escada fixada','Manter degraus livres de graxa, óleo e lama']},
+  {id:'c11',n:'11',p:'Risco de queda durante permanência em cima da carroceria?',c:['Não movimentar o veículo com colaborador na carroceria','Manter carroceria organizada com área livre','Não correr/saltar obstáculos na carroceria']},
+  {id:'c12',n:'12',p:'Risco de queda na subida/descida da cabine suplementar/principal?',c:['Não saltar da cabine','Utilizar escada da cabine','Manter 3 pontos de apoio','Manter degraus livres de graxa, óleo e lama']}]},
+ {t:'Trabalho em altura',q:[
+  {id:'h10',n:'10',p:'Existe risco de queda de materiais/ferramentas?',c:['Manter ferramentas em balde de lona quando fora de uso','Não arremessar objetos','Sinalizar e isolar a área (POP 00110 EQTL)','Avaliar trajetória de queda e distanciar do raio de ação','Utilizar capacete com jugular']},
+  {id:'h11',n:'11',p:'A estrutura de apoio da escada oferece condições de acesso seguro?',c:['Inspeção visual na estrutura (POP 00111 EQTL)','Verificar profundidade do engastamento','Verificar danos estruturais (armadura exposta, rachaduras, fissuras)','Verificar ângulo de inclinação (prumo)','Verificar sinais de descarga atmosférica','Verificar poste de madeira quanto a podridão/oco']},
+  {id:'h12',n:'12',p:'Existe risco de queda de altura?',c:['Verificar condições de acesso da estrutura (engastamento, armadura, prumo)','Amarrar escada nas extremidades/ponto fixo resistente (POP 00111 EQTL)','Trabalhador de solo segura a escada até amarração completa','Utilizar SPIQ (cinto paraquedista, trava-quedas, talabarte)','Não sair da caçamba da cesta aérea durante a atividade','Conectar talabarte no ponto de ancoragem do fabricante','Não permanecer na estrutura durante tensionamento de cabos']},
+  {id:'h13',n:'13',p:'A estrutura sofreu danos críticos durante a movimentação?',c:['Não implantar estrutura']}]},
+ {t:'Choque elétrico e arco elétrico',q:[
+  {id:'e14',n:'14',p:'Atividade próxima a rede que permanecerá energizada? Existe risco de choque elétrico?',c:['Utilizar ferramentas e coberturas isolantes conforme a classe de tensão','Utilizar luvas/manga de borracha conforme a classe de tensão com luvas de cobertura','Capacete classe B com jugular, vestimenta RF e calçado com proteção']},
+  {id:'e15',n:'15',p:'Risco de contato/proximidade acidental com partes energizadas de outra rede?',c:['Analisar possíveis áreas vivas de contato acidental','Verificar distâncias de segurança antes de movimentar materiais','Manter distância segura da rede energizada','Utilizar ferramentas isoladas em bom estado','Evitar movimentos bruscos','Luvas/manga isolantes conforme a classe de tensão','Capacete classe B, vestimenta RF e calçado com proteção']},
+  {id:'e16',n:'16',p:'Trabalho com instalação desenergizada? Existe risco de energização acidental?',c:['Seccionar (definir responsável) — POP 00112 EQTL','Impedir reenergização por bloqueio (definir responsável)','Constatar ausência de tensão (definir responsável)','Instalar aterramento temporário com equipotencialização (definir responsável)','Proteger elementos energizados na zona controlada','Instalar sinalização de impedimento de reenergização']},
+  {id:'e17',n:'17',p:'O local pode sofrer energização acidental por outro circuito?',c:['Verificar possível fonte de energização acidental','Instalar placas de advertência (POP 00112 EQTL)','Proteger zona de trabalho com aterramento temporário']},
+  {id:'e18',n:'18',p:'Risco de falha de comunicação entre a equipe e o Centro de Operação?',c:['Manter contato permanente com o Centro de Operação até o fim do serviço (POP 006 EQTL / COI)']},
+  {id:'e19',n:'19',p:'O Centro de Operação sabe que a equipe está no local para energizar a rede?',c:['Informar nome do controlador e horário do contato','Solicitar aviso de eventual troca de turno entre controladores durante o serviço']}]},
+ {t:'Movimentação e içamento de materiais',q:[
+  {id:'m20',n:'20',p:'A área de trabalho permite movimentação segura do material?',c:[]},
+  {id:'m21',n:'21',p:'Os acessórios de movimentação estão disponíveis e em condições seguras de uso?',c:[]},
+  {id:'m22',n:'22',p:'O equipamento de elevação de cargas está em condições seguras de uso?',c:[]},
+  {id:'m23',n:'23',p:'Risco de tombamento do caminhão durante a movimentação da carga?',c:[]},
+  {id:'m24',n:'24',p:'Risco de esmagamento e/ou ser atingido por carga em movimento?',c:[]},
+  {id:'m25',n:'25',p:'Risco de queda/prensamento/esmagamento de mãos e pés na movimentação manual?',c:[]},
+  {id:'m26',n:'26',p:'Risco de energização do equipamento de guindar por indução/contato acidental?',c:[]}]},
+ {t:'Escavação e montagem de estruturas',q:[
+  {id:'x27',n:'27',p:'Risco de impacto/corte/perfuração na escavação, corte de estrutura ou componentes?',c:[]},
+  {id:'x28',n:'28',p:'Risco de esmagamento durante montagem de estruturas em solo?',c:[]},
+  {id:'x29',n:'29',p:'Risco de colapso de estrutura durante tensionamento/nivelamento de cabos?',c:[]}]},
+ {t:'Verificação de outros riscos',q:[
+  {id:'o30',n:'30',p:'Todos os membros da equipe estão em condições de realizar a atividade?',c:[]},
+  {id:'o31',n:'31',p:'Existe outro risco não identificado acima? (descrever no campo de observações)',c:[]}]},
+];
+
+/* LINHA VIVA (APR — Atividades de Manutenção em Rede de Distribuição, Método em Linha Viva, rev.03) */
+const APR_LV=[
+ {t:'Risco de acidente de trânsito',q:[
+  {id:'lv1',n:'1',p:'Será necessário reposicionar o veículo para maior segurança?',c:['Manobrar veículo de acordo com o CTB e o POP 00110 EQTL']},
+  {id:'lv2',n:'2',p:'Existe risco de colisão?',c:['Sinalizar veículo com cone e ligar pisca-alerta (POP 00110 EQTL)']},
+  {id:'lv3',n:'3',p:'Existe risco de atropelamento?',c:['Ficar atento ao fluxo e não usar celular/PDA/tablet na via','Não dar passos para trás em direção à via','Fazer corredor seguro para pedestre']},
+  {id:'lv4',n:'4',p:'Existe o risco do veículo deslocar-se acidentalmente?',c:['Manter freio estacionário acionado e calçar as rodas (POP 00110 EQTL)']}]},
+ {t:'Risco de ataque de animais',q:[
+  {id:'lv5',n:'5',p:'Existe casa de abelhas, marimbondos ou similar na estrutura ou proximidades?',c:['Não atacar a casa de abelhas/marimbondos','Utilizar vestimenta de apicultor para remoção','Utilizar luvas de vaqueta']},
+  {id:'lv6',n:'6',p:'Existe risco de ataque de animais?',c:['Não se aproximar, agredir ou brincar com o animal','Utilizar calçado de segurança, perneira, luvas de vaqueta e vestimenta adequada']}]},
+ {t:'Riscos do local de trabalho no solo',q:[
+  {id:'lv7',n:'7',p:'Local/entorno irregular, com desníveis, buracos, obstáculos ou superfície lisa (queda/tropeço/escorregão)?',c:['Utilizar botina de segurança devidamente calçada','Ficar atento por onde pisa, não correr/saltar (POP 00110 EQTL)','Não caminhar usando celular/tablet/PDA']},
+  {id:'lv8',n:'8',p:'Local/entorno possui objetos cortantes e perfurantes?',c:['Remover objetos com luvas de vaqueta','Caminhar atento e utilizar calçado de segurança']},
+  {id:'lv9',n:'9',p:'Risco de contato com superfície abrasiva/cortante no manuseio de ferramentas e materiais?',c:['Guardar e transportar ferramentas de corte em bainha','Utilizar luvas de vaqueta contra corte/perfuração']}]},
+ {t:'Acesso à carroceria e cabine suplementar',q:[
+  {id:'lv10',n:'10',p:'Risco de queda na subida/descida da carroceria do caminhão?',c:['Não saltar da carroceria','Usar escada móvel instalada para subir/descer','Manter 3 pontos de apoio na escada fixada','Manter degraus livres de graxa, óleo e lama']},
+  {id:'lv11',n:'11',p:'Risco de queda durante permanência em cima da carroceria?',c:['Não movimentar o veículo com colaborador na carroceria','Manter carroceria organizada com área livre','Não correr/saltar obstáculos na carroceria']},
+  {id:'lv12',n:'12',p:'Risco de queda na subida/descida da cabine suplementar/principal?',c:['Não saltar da cabine','Utilizar escada da cabine','Manter 3 pontos de apoio','Manter degraus livres de graxa, óleo e lama']}]},
+ {t:'Trabalho em altura',q:[
+  {id:'lv13',n:'13',p:'Existe risco de queda de materiais e ferramentas?',c:['Manter ferramentas em local adequado quando fora de uso','Não arremessar objetos','Sinalizar e isolar a área de trabalho (POP 00110 EQTL)','Avaliar trajetória de queda e distanciar do raio de ação','Utilizar capacete com jugular']},
+  {id:'lv14',n:'14',p:'Os controles de operação da cesta aérea estão funcionando corretamente e protegidos contra acionamento acidental?',c:['Inspecionar os controles de operação antes de começar o trabalho','Interromper a atividade se detectar controle inoperante ou com defeito']},
+  {id:'lv15',n:'15',p:'Existe risco de queda de altura?',c:['Conectar o talabarte no ponto de ancoragem definido pelo fabricante do cesto','Não projetar-se excessivamente para fora da cesta aérea','Não sair da caçamba da cesta aérea durante a atividade']}]},
+ {t:'Choque elétrico e arco elétrico',q:[
+  {id:'lv16',n:'16',p:'Foi efetuada a desativação/bloqueio dos dispositivos de religamento automático do circuito, sistema ou equipamento?',c:['Confirmar com o Centro de Operação o bloqueio da linha']},
+  {id:'lv17',n:'17',p:'Os equipamentos e dispositivos desativados/bloqueados foram sinalizados com identificação da condição?',c:['Confirmar com o Centro de Operação o bloqueio da linha']},
+  {id:'lv18',n:'18',p:'Há risco de choque elétrico ou arco elétrico?',c:['Aterrar o caminhão','Utilizar detector de ausência de tensão — não acessar o veículo com eletricistas em contato com a rede','Utilizar ferramentas isoladas em bom estado de conservação','Luvas/manga isolantes de borracha conforme a classe de tensão com luvas de cobertura','Capacete com jugular, balaclava FR, protetor facial, vestimenta RF e calçado com proteção','Proteger elementos energizados nas zonas controlada e de risco com coberturas adequadas','Manter coberturas rígidas e flexíveis presas com pregador','Manter distância de segurança do veículo com a cesta em operação']},
+  {id:'lv19',n:'19',p:'O ponto de trabalho permite colocar todas as proteções contra contato acidental com partes energizadas/aterradas e arco elétrico?',c:['Verificar distâncias de segurança antes de movimentar materiais próximo ao ponto energizado']},
+  {id:'lv20',n:'20',p:'Os pontos onde serão instalados os by-pass estão identificados?',c:['Definir onde serão instalados os by-pass e garantir a instalação correta','Registrar nome/matrícula de quem instala e de quem confere os by-pass']},
+  {id:'lv21',n:'21',p:'Equipamentos, ferramentas e dispositivos isolantes foram submetidos a testes elétricos/ensaios periódicos?',c:['Verificar validade dos ensaios de isolamento elétrico']},
+  {id:'lv22',n:'22',p:'Existe risco de falha de comunicação entre a equipe e o Centro de Operação?',c:['Manter contato permanente com o Centro de Operação até o fim do serviço (POP 006 EQTL / COI)','Solicitar aviso de eventual troca de turno entre controladores']},
+  {id:'lv23',n:'23',p:'O Centro de Operação sabe que a equipe está no local para realizar a atividade?',c:['Informar nome do controlador e horário do contato','Solicitar aviso de eventual troca de turno entre controladores']}]},
+ {t:'Movimentação de materiais',q:[
+  {id:'lv24',n:'24',p:'A área de trabalho permite movimentação segura do material?',c:['Manter na área apenas trabalhadores envolvidos na movimentação','Sinalizar e isolar o local de movimentação da carga (POP 00110 EQTL)']},
+  {id:'lv25',n:'25',p:'Os acessórios de movimentação estão disponíveis e em condições seguras de uso?',c:['Selecionar acessórios de içamento adequados e em bom estado','Inspecionar antes e após o uso e substituir itens danificados']},
+  {id:'lv26',n:'26',p:'O equipamento de elevação de cargas está em condições seguras de uso?',c:['Inspecionar antes do uso']},
+  {id:'lv27',n:'27',p:'Existe risco de tombamento do caminhão durante a movimentação da carga?',c:['Verificar resistência do solo (encharcado, erosão, bueiro, canaleta)','Posicionar o veículo em local seguro (POP 00110 EQTL)','Manter sapatas acionadas e apoiadas em base resistente (POP 085 EQTL)','Não exceder a capacidade de carga — consultar diagrama de carga (POP 085 EQTL)','Operar equipamento somente trabalhador capacitado e autorizado']},
+  {id:'lv28',n:'28',p:'Risco de esmagamento e/ou ser atingido por carga em movimento?',c:['Não ficar/passar por baixo de carga suspensa (POP 085 EQTL)','Não ficar no raio de movimentação da carga','Não permanecer na carroceria com carga içada/em movimento','Utilizar corda ou bastão guia para movimentação da carga','Manter visão permanente sobre a carga movimentada']},
+  {id:'lv29',n:'29',p:'Risco de queda/prensamento/esmagamento de mãos e pés na movimentação manual?',c:['Não movimentar manualmente cargas pesadas','Utilizar luvas de vaqueta e calçado de segurança','Não arremessar objetos no solo com colaboradores próximos']}]},
+ {t:'Verificação de outros riscos',q:[
+  {id:'lv30',n:'30',p:'Todos os membros da equipe estão em condições de realizar a atividade?',c:[]},
+  {id:'lv31',n:'31',p:'Existe outro risco não identificado acima? (descrever no campo de observações)',c:[]}]},
+];
+
+/* PODA (APR — Atividades de Supressão Vegetação, Limpeza de Faixa e Corte Seletivo, rev.01) */
+const APR_PODA=[
+ {t:'Risco de acidente de trânsito',q:[
+  {id:'po1',n:'1',p:'Será necessário reposicionar o veículo para maior segurança?',c:['Manobrar veículo de acordo com o CTB']},
+  {id:'po2',n:'2',p:'Existe risco de colisão?',c:['Sinalizar veículo com cone e ligar pisca-alerta']},
+  {id:'po3',n:'3',p:'Existe risco de atropelamento?',c:['Ficar atento ao fluxo de veículos','Não utilizar celular/PDA/tablet na via','Não dar passos para trás em direção à via']},
+  {id:'po4',n:'4',p:'Existe o risco do veículo deslocar-se acidentalmente?',c:['Manter freio estacionário acionado','Calçar as rodas do veículo']}]},
+ {t:'Risco de ataque de animais',q:[
+  {id:'po5',n:'5',p:'Existe casa de abelhas, marimbondos ou similar na árvore ou proximidades?',c:['Não atacar a casa de abelhas/marimbondos','Utilizar vestimenta de apicultor para remoção','Utilizar luvas de vaqueta']},
+  {id:'po6',n:'6',p:'Existe risco de ataque de animais?',c:['Não se aproximar do animal','Não agredir ou ficar brincando com o animal','Utilizar calçado de segurança, perneira, luvas de vaqueta e vestimenta adequada']}]},
+ {t:'Riscos do local de trabalho no solo',q:[
+  {id:'po7',n:'7',p:'Local/entorno irregular, com desníveis, buracos, obstáculos ou superfície lisa (queda/tropeço/escorregão)?',c:['Utilizar calçado de segurança devidamente calçado','Ficar atento por onde pisa','Não correr ou saltar','Não caminhar usando celular/tablet/PDA']},
+  {id:'po8',n:'8',p:'Local/entorno possui objetos cortantes e perfurantes?',c:['Remover objetos com luvas de vaqueta','Caminhar atento ao local onde pisa','Utilizar calçado de segurança']},
+  {id:'po9',n:'9',p:'Risco de contato com superfície abrasiva/cortante no manuseio de ferramentas e materiais?',c:['Guardar e transportar ferramentas de corte em bainha','Utilizar luvas de vaqueta contra corte/perfuração']}]},
+ {t:'Trabalho em altura',q:[
+  {id:'po10',n:'10',p:'Existe risco de queda de materiais, ferramentas e galhos de árvore?',c:['Manter ferramentas de trabalho amarradas','Não arremessar objetos','Sinalizar e isolar a área de trabalho','Avaliar trajetória de queda do galho e distanciar do raio de ação/queda','Utilizar capacete com jugular']},
+  {id:'po11',n:'11',p:'A estrutura de apoio da escada oferece condições de acesso seguro?',c:['Inspeção visual na estrutura da escada de centro','Manter freio estacionário acionado e calçar as rodas','Não apoiar a escada em árvores (acesso aprovado: cesta aérea, escada de centro/giro e tripé de escada)']},
+  {id:'po12',n:'12',p:'Existe risco de queda de altura?',c:['Inspeção visual na estrutura da escada de centro','Não conduzir veículo com trabalhador na escada ou carroceria','Utilizar SPIQ (cinto paraquedista, trava-quedas e talabarte)','Não sair da caçamba da cesta aérea','Conectar talabarte no ponto de ancoragem do fabricante (cesta aérea)']}]},
+ {t:'Choque elétrico e arco elétrico',q:[
+  {id:'po13',n:'13',p:'A atividade será realizada com a rede energizada? Existe risco de choque elétrico?',c:['Utilizar ferramentas isoladas em bom estado de conservação','Utilizar cobertura isolante conforme a classe de tensão da instalação','Luvas isolantes conforme a classe de tensão com luvas de cobertura','Manga isolante conforme a classe de tensão','Capacete classe B com jugular, vestimenta RF e calçado com proteção']},
+  {id:'po14',n:'14',p:'Risco de contato e/ou proximidade acidental com partes energizadas da rede elétrica?',c:['Analisar onde pode haver contato acidental','Manter distância segura da rede energizada','Direcionar queda de árvore e galhos para fora da rede','Verificar distâncias de segurança antes de movimentar materiais','Utilizar ferramentas isoladas em bom estado','Evitar movimentos bruscos','Luvas e manga isolantes conforme a classe de tensão','Capacete classe B, vestimenta RF e calçado com proteção']},
+  {id:'po15',n:'15',p:'Risco de curto-circuito/arco elétrico por queda de árvore, galhos ou materiais na rede elétrica?',c:['Manter distância segura da rede energizada','Direcionar queda de árvore e galhos para fora da rede','Verificar distâncias de segurança antes de movimentar materiais','Capacete classe B, vestimenta RF e calçado com proteção']},
+  {id:'po16',n:'16',p:'Trabalho com instalação desenergizada? Existe risco de energização acidental?',c:['Seccionar (definir responsável)','Impedir reenergização por bloqueio (definir responsável)','Constatar ausência de tensão (definir responsável)','Instalar aterramento temporário com equipotencialização (definir responsável)','Proteger elementos energizados na zona controlada','Instalar sinalização de impedimento de reenergização']}]},
+ {t:'Riscos com motosserra / motopoda',q:[
+  {id:'po17',n:'17',p:'A motosserra e/ou motopoda está em condições seguras de operação?',c:['Realizar inspeção na motosserra/motopoda antes do uso']},
+  {id:'po18',n:'18',p:'O operador da motosserra recebeu treinamento e possui os EPI apropriados?',c:['Vestimenta anticorte (calça e camisa), capacete, protetor facial e auditivo, luvas de motosserrista e calçado de segurança','Operar motopoda respeitando a distância mínima da rede energizada definida pelo fabricante']}]},
+ {t:'Verificação de outros riscos',q:[
+  {id:'po19',n:'19',p:'Todos os membros da equipe estão em condições de realizar a atividade?',c:[]},
+  {id:'po20',n:'20',p:'Existe outro risco não identificado acima? (descrever no campo de observações)',c:[]}]},
+];
+
+/* ═══════════ CONFIGURAÇÃO DAS EQUIPES ═══════════ */
+const TEAMS={
+ LM:{label:'LINHA MORTA / EXP / MAN',chip:'LM · EXP · MAN',
+  aprSub:'APR — Atividades de Manutenção em Rede de Distribuição — Linha Morta',
+  pdfTitle:'RELATÓRIO DE APONTAMENTO LINHA MORTA',
+  cats:CATS_LM,atv:ATV_LM,apr:APR_LM,resp:['32','33'],recusa:['34','35'],
+  nota:'Nota: não é permitido o trabalho simultâneo na mesma estrutura entre equipes de Linha Viva e Linha Morta.'},
+ LV:{label:'LINHA VIVA',chip:'LINHA VIVA',
+  aprSub:'APR — Atividades de Manutenção em Rede de Distribuição — Método em Linha Viva',
+  pdfTitle:'RELATÓRIO DE APONTAMENTO LINHA VIVA',
+  cats:CATS_LV,atv:ATV_LV,apr:APR_LV,resp:null,recusa:['32','33'],
+  nota:'Nota: não é permitido o trabalho simultâneo na mesma estrutura entre equipes de Linha Viva e Linha Morta. A equipe deve percorrer todo o trecho da intervenção, incluindo estruturas adjacentes, para identificar os riscos e registrar na APR.'},
+ PODA:{label:'PODA',chip:'PODA',
+  aprSub:'APR — Atividades de Supressão Vegetação, Limpeza de Faixa e Corte Seletivo',
+  pdfTitle:'RELATÓRIO DE ATIVIDADES PODA',
+  cats:CATS_PODA,atv:ATV_PODA,apr:APR_PODA,resp:['21','22'],recusa:['23','24'],
+  nota:'Nota: quando duas ou mais equipes atuarem no mesmo local simultaneamente, preencher uma APR em conjunto e definir o encarregado líder. Se outra equipe chegar para apoio, revisar a APR incluindo os novos membros.'},
+};
+
+/* ═══════════ ESTADO ═══════════ */
+let team=localStorage.getItem('dpl_team')||'';
+const TC=()=>TEAMS[team]||TEAMS.LM;
+const K=s=>`dpl_${s}_${team}`;
+let dados={},quant={},evidences=[],apr={head:{},resp:{},colab:[]};
+let stream=null,facing='environment',lastPos=null,pending=null;
+
+let toastT;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+
+/* ═══════════ PERSISTÊNCIA ═══════════ */
+function saveDados(){localStorage.setItem(K('dados'),JSON.stringify(dados));}
+function saveQuant(){localStorage.setItem(K('quant'),JSON.stringify(quant));updateCounts();}
+function saveApr(){try{localStorage.setItem(K('apr'),JSON.stringify(apr));}catch(e){toast('⚠️ Memória cheia — remova a foto da equipe ou evidências antigas');}}
+let db=null;
+function openDB(){return new Promise(res=>{const r=indexedDB.open('lm-evid',1);r.onupgradeneeded=e=>e.target.result.createObjectStore('itens',{keyPath:'id'});r.onsuccess=e=>{db=e.target.result;res();};r.onerror=()=>res();});}
+function dbPut(i){if(db)db.transaction('itens','readwrite').objectStore('itens').put(i);}
+function dbDel(id){if(db)db.transaction('itens','readwrite').objectStore('itens').delete(id);}
+function dbAll(){return new Promise(res=>{if(!db)return res([]);const q=db.transaction('itens','readonly').objectStore('itens').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);});}
+const evTeam=e=>e.team||'LM';
+const curEvid=()=>evidences.filter(e=>evTeam(e)===team);
+
+function parseLS(k,fb){try{return JSON.parse(localStorage.getItem(k))||fb;}catch(e){return fb;}}
+function migrateOldKeys(){ // dados antigos (app de equipe única) viram dados da LINHA MORTA
+ if(!localStorage.getItem('dpl_dados_LM')&&localStorage.getItem('lm_dados'))localStorage.setItem('dpl_dados_LM',localStorage.getItem('lm_dados'));
+ if(!localStorage.getItem('dpl_quant_LM')&&localStorage.getItem('lm_quant'))localStorage.setItem('dpl_quant_LM',localStorage.getItem('lm_quant'));
+ if(!localStorage.getItem('dpl_apr_LM')&&localStorage.getItem('lm_apr'))localStorage.setItem('dpl_apr_LM',localStorage.getItem('lm_apr'));
+}
+function loadTeamData(){
+ dados=parseLS(K('dados'),{});
+ quant=parseLS(K('quant'),{});
+ apr=parseLS(K('apr'),{head:{},resp:{},colab:[]});
+ apr.head=apr.head||{};apr.resp=apr.resp||{};apr.colab=apr.colab||[];
+}
+
+/* ═══════════ EQUIPE ═══════════ */
+function applyTeamUI(){
+ const cfg=TC();
+ $('teamLabel').textContent=cfg.label;
+ $('teamChip').textContent=cfg.chip+' ▾';
+ $('aprTitle').textContent=cfg.aprSub;
+ $('grpResp').style.display=cfg.resp?'block':'none';
+ if(cfg.resp){
+  $('lblRespA').textContent=cfg.resp[0]+'. Responsável pela constatação da ausência de tensão';
+  $('lblRespB').textContent=cfg.resp[1]+'. Responsável pela instalação do aterramento temporário';
+ }
+ const nota=$('aprNota');nota.style.display=cfg.nota?'block':'none';nota.textContent=cfg.nota||'';
+}
+function hydrate(){
+ document.querySelectorAll('[data-f]').forEach(el=>{el.value=dados[el.dataset.f]??'';});
+ document.querySelectorAll('[data-a]').forEach(el=>{el.value=apr.head[el.dataset.a]??'';});
+}
+function renderAllTeam(){
+ applyTeamUI();hydrate();
+ renderAtividades($('busca').value||'');renderAPR();renderColab();renderGallery();updateCounts();renderSummary();
+}
+function chooseTeam(t){
+ team=t;localStorage.setItem('dpl_team',t);
+ loadTeamData();renderAllTeam();closeTeamSel();
+ showView('Apr');
+ toast('Equipe: '+TC().label);
+}
+function openTeamSel(){$('tsClose').style.display=team?'inline-block':'none';$('teamSel').classList.add('open');}
+function closeTeamSel(){if(team)$('teamSel').classList.remove('open');}
+
+/* ═══════════ DADOS / NOVO RELATÓRIO ═══════════ */
+function initInputs(){
+ document.querySelectorAll('[data-f]').forEach(el=>{el.addEventListener('input',()=>{dados[el.dataset.f]=el.value;saveDados();});});
+ document.querySelectorAll('[data-a]').forEach(el=>{el.addEventListener('input',()=>{apr.head[el.dataset.a]=el.value;saveApr();});});
+}
+function novoRelatorio(){if(!confirm('Limpar dados, atividades, APR, foto da equipe e evidências da equipe '+TC().label+'?'))return;
+ dados={};quant={};apr={head:{},resp:{},colab:[]};
+ localStorage.removeItem(K('dados'));localStorage.removeItem(K('quant'));localStorage.removeItem(K('apr'));
+ curEvid().forEach(e=>dbDel(e.id));evidences=evidences.filter(e=>evTeam(e)!==team);
+ hydrate();renderAtividades('');renderAPR();renderColab();renderGallery();updateCounts();renderSummary();toast('Novo relatório iniciado');}
+
+/* ═══════════ ATIVIDADES ═══════════ */
+function renderAtividades(filtro){const list=$('atvList');list.innerHTML='';filtro=(filtro||'').toUpperCase();let shown=0;
+ const cfg=TC();
+ cfg.cats.forEach((cat,ci)=>{const items=cfg.atv.filter(a=>a.c===ci&&(!filtro||a.cod.includes(filtro)||a.d.includes(filtro)));if(!items.length)return;
+  const h=document.createElement('div');h.className='cat-title';h.textContent=cat;list.appendChild(h);
+  items.forEach(a=>{shown++;const q=quant[a.cod]||{};const row=document.createElement('div');row.className='atv'+((q.real||q.prog)?' filled':'');
+   row.innerHTML=`<div class="atv-info"><div class="atv-cod">${a.cod} · <span class="atv-un">${a.u}</span></div><div class="atv-desc">${a.d}</div></div>
+    <div class="qty"><span>Prog</span><input type="number" inputmode="numeric" min="0" data-cod="${a.cod}" data-k="prog" value="${q.prog||''}"></div>
+    <div class="qty"><span>Real</span><input class="real" type="number" inputmode="numeric" min="0" data-cod="${a.cod}" data-k="real" value="${q.real||''}"></div>`;
+   list.appendChild(row);});});
+ if(!shown)list.innerHTML='<div class="no-res">Nenhuma atividade encontrada.</div>';
+ list.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{const cod=inp.dataset.cod,k=inp.dataset.k,v=inp.value;quant[cod]=quant[cod]||{};
+  if(v===''||+v===0)delete quant[cod][k];else quant[cod][k]=+v;if(!quant[cod].prog&&!quant[cod].real)delete quant[cod];
+  inp.closest('.atv').classList.toggle('filled',!!(quant[cod]&&(quant[cod].real||quant[cod].prog)));saveQuant();}));}
+$('busca').addEventListener('input',e=>renderAtividades(e.target.value));
+
+/* ═══════════ APR ═══════════ */
+function renderAPR(){const list=$('aprList');list.innerHTML='';
+ TC().apr.forEach(sec=>{const h=document.createElement('div');h.className='cat-title';h.textContent=sec.t;list.appendChild(h);
+  sec.q.forEach(q=>{const st=apr.resp[q.id]||{};const card=document.createElement('div');card.className='apr-q';
+   let ctrls=q.c.map((c,i)=>`<label class="ctrl"><input type="checkbox" data-q="${q.id}" data-ci="${i}" ${st.ctrl&&st.ctrl[i]?'checked':''}><span>${c}</span></label>`).join('');
+   card.innerHTML=`<div class="qh"><b>${q.n}.</b>${q.p}</div>
+    <div class="snr">
+      <button data-q="${q.id}" data-v="SIM" class="${st.resp==='SIM'?'sel-sim':''}">SIM</button>
+      <button data-q="${q.id}" data-v="NAO" class="${st.resp==='NAO'?'sel-nao':''}">NÃO</button>
+      <button data-q="${q.id}" data-v="NA" class="${st.resp==='NA'?'sel-na':''}">N.A.</button>
+    </div>${ctrls}`;
+   list.appendChild(card);});});
+ list.querySelectorAll('.snr button').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.q,v=b.dataset.v;apr.resp[id]=apr.resp[id]||{};
+  apr.resp[id].resp=apr.resp[id].resp===v?null:v;saveApr();renderAPR();}));
+ list.querySelectorAll('.ctrl input').forEach(c=>c.addEventListener('change',()=>{const id=c.dataset.q,ci=c.dataset.ci;apr.resp[id]=apr.resp[id]||{};apr.resp[id].ctrl=apr.resp[id].ctrl||{};
+  if(c.checked)apr.resp[id].ctrl[ci]=true;else delete apr.resp[id].ctrl[ci];saveApr();}));
+ renderRecusa();}
+function renderRecusa(){const box=$('recusaBox');const q34=apr.head.q34||'',q35=apr.head.q35||'';const[nA,nB]=TC().recusa;
+ box.innerHTML=`<div class="qh" style="font-size:12.5px;margin-bottom:6px">${nA}. Após a avaliação, é possível realizar a atividade com segurança?</div>
+  <div class="snr" id="snr34"><button data-v="SIM" class="${q34==='SIM'?'sel-sim':''}">SIM</button><button data-v="NAO" class="${q34==='NAO'?'sel-nao':''}">NÃO</button></div>
+  <div class="qh" style="font-size:12.5px;margin:8px 0 6px">${nB}. Necessita utilizar o Direito de Recusa?</div>
+  <div class="snr" id="snr35"><button data-v="SIM" class="${q35==='SIM'?'sel-sim':''}">SIM</button><button data-v="NAO" class="${q35==='NAO'?'sel-nao':''}">NÃO</button></div>`;
+ box.querySelectorAll('#snr34 button').forEach(b=>b.onclick=()=>{apr.head.q34=apr.head.q34===b.dataset.v?'':b.dataset.v;saveApr();renderRecusa();});
+ box.querySelectorAll('#snr35 button').forEach(b=>b.onclick=()=>{apr.head.q35=apr.head.q35===b.dataset.v?'':b.dataset.v;saveApr();renderRecusa();});}
+function renderColab(){const list=$('colabList');list.innerHTML='';
+ apr.colab.forEach((c,i)=>{const row=document.createElement('div');row.className='colab-row';
+  const sig=c.assinatura?`<div class="sign-box signed" data-sign="${i}"><img src="${c.assinatura}" alt="assinatura"></div>`
+    :`<div class="sign-box" data-sign="${i}">✍️ Assinar</div>`;
+  row.innerHTML=`<div class="cr"><input class="mat" placeholder="Matríc." value="${c.mat||''}" data-i="${i}" data-k="mat">
+    ${sig}
+    <button class="rm" data-rm="${i}">✕</button></div>
+   <div class="chips"><span class="chip ${c.alt?'on':''}" data-i="${i}" data-t="alt">Altura</span>
+    <span class="chip ${c.sep?'on':''}" data-i="${i}" data-t="sep">SEP</span>
+    <span class="chip ${c.ec?'on':''}" data-i="${i}" data-t="ec">Esp. Confin.</span></div>`;
+  list.appendChild(row);});
+ list.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{apr.colab[inp.dataset.i][inp.dataset.k]=inp.value;saveApr();}));
+ list.querySelectorAll('.sign-box').forEach(sb=>sb.addEventListener('click',()=>openSign(+sb.dataset.sign)));
+ list.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{const i=ch.dataset.i,t=ch.dataset.t;apr.colab[i][t]=!apr.colab[i][t];saveApr();renderColab();}));
+ list.querySelectorAll('.rm').forEach(b=>b.addEventListener('click',()=>{apr.colab.splice(+b.dataset.rm,1);saveApr();renderColab();}));
+ renderTeamPhoto();}
+function addColab(){apr.colab.push({mat:'',assinatura:'',alt:false,sep:false,ec:false});saveApr();renderColab();}
+
+/* ═══════════ FOTO DA EQUIPE (libera após todos assinarem) ═══════════ */
+function allSigned(){return apr.colab.length>0&&apr.colab.every(c=>c.assinatura);}
+function renderTeamPhoto(){const box=$('teamPhotoBox');const signed=apr.colab.filter(c=>c.assinatura).length;
+ if(apr.head.fotoEquipe){
+  box.innerHTML=`<img class="tp-img" src="${apr.head.fotoEquipe}" alt="Foto da equipe">
+   <div class="tp-row"><button onclick="teamPhotoInput.click()">🔄 Trocar foto</button><button class="danger" onclick="removeTeamPhoto()">✕ Remover</button></div>`;
+  return;
+ }
+ if(allSigned()){
+  box.innerHTML=`<button class="tp-btn" onclick="teamPhotoInput.click()">📷 Registrar foto da equipe</button>
+   <p class="tp-hint ok">✓ Todos os ${apr.colab.length} colaboradores assinaram — foto liberada. A foto grava data, hora e GPS.</p>`;
+ }else{
+  const falta=apr.colab.length? `${signed} de ${apr.colab.length} assinaturas concluídas.` : 'Adicione os colaboradores da APR acima.';
+  box.innerHTML=`<button class="tp-btn" disabled>📷 Registrar foto da equipe</button>
+   <p class="tp-hint">🔒 A foto da equipe é liberada depois que <b>todos os colaboradores assinarem</b> a APR. ${falta}</p>`;
+ }
+}
+function removeTeamPhoto(){if(!confirm('Remover a foto da equipe?'))return;delete apr.head.fotoEquipe;saveApr();renderTeamPhoto();}
+$('teamPhotoInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();
+ img.onload=()=>{const max=1400,s=Math.min(1,max/Math.max(img.width,img.height)),w=Math.round(img.width*s),h=Math.round(img.height*s),c=$('canvas');
+  c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,h);drawStamp(ctx,w,h);
+  apr.head.fotoEquipe=c.toDataURL('image/jpeg',0.82);saveApr();renderTeamPhoto();toast('Foto da equipe salva ✓');};
+ img.src=URL.createObjectURL(f);e.target.value='';});
+
+/* ═══════════ ASSINATURA DIGITAL ═══════════ */
+let sigIdx=-1,sigCtx=null,sigDrawing=false,sigHasInk=false,sigLast=null;
+function openSign(i){sigIdx=i;$('sigModal').classList.add('open');
+ requestAnimationFrame(()=>{const cv=$('sigCanvas'),w=$('sigPad');const r=w.getBoundingClientRect();
+  cv.width=Math.round(r.width);cv.height=Math.round(r.height);
+  sigCtx=cv.getContext('2d');sigCtx.lineWidth=2.5;sigCtx.lineCap='round';sigCtx.lineJoin='round';sigCtx.strokeStyle='#0d1117';
+  sigHasInk=false;});}
+function sigPos(e){const cv=$('sigCanvas'),r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
+function sigStart(e){e.preventDefault();sigDrawing=true;sigLast=sigPos(e);}
+function sigMove(e){if(!sigDrawing)return;e.preventDefault();const p=sigPos(e);sigCtx.beginPath();sigCtx.moveTo(sigLast.x,sigLast.y);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigLast=p;sigHasInk=true;}
+function sigEnd(e){sigDrawing=false;}
+function clearSign(){if(sigCtx)sigCtx.clearRect(0,0,$('sigCanvas').width,$('sigCanvas').height);sigHasInk=false;}
+function closeSign(){$('sigModal').classList.remove('open');sigIdx=-1;}
+function trimSign(src){const w=src.width,h=src.height,d=src.getContext('2d').getImageData(0,0,w,h).data;
+ let x0=w,y0=h,x1=0,y1=0,found=false;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(d[(y*w+x)*4+3]>10){found=true;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}}
+ if(!found)return src.toDataURL('image/png');
+ const pad=8;x0=Math.max(0,x0-pad);y0=Math.max(0,y0-pad);x1=Math.min(w-1,x1+pad);y1=Math.min(h-1,y1+pad);
+ const cw=x1-x0+1,ch=y1-y0+1,out=document.createElement('canvas');out.width=cw;out.height=ch;
+ out.getContext('2d').drawImage(src,x0,y0,cw,ch,0,0,cw,ch);return out.toDataURL('image/png');}
+function saveSign(){if(sigIdx<0)return;if(!sigHasInk){toast('Assine antes de salvar');return;}
+ apr.colab[sigIdx].assinatura=trimSign($('sigCanvas'));saveApr();closeSign();renderColab();}
+
+/* ═══════════ GPS / CÂMERA ═══════════ */
+function watchLocation(){if(!navigator.geolocation){gps('err','GPS indisp.');return;}
+ navigator.geolocation.watchPosition(p=>{lastPos=p;gps('on',p.coords.latitude.toFixed(5)+', '+p.coords.longitude.toFixed(5));updateHud();},
+ err=>{gps('err',err.code===1?'GPS negado':'Sem sinal');updateHud();},{enableHighAccuracy:true,maximumAge:4000,timeout:20000});}
+function gps(cls,txt){$('gpsDot').className='dot'+(cls==='on'?' on':cls==='err'?' err':'');$('gpsTxt').textContent=txt;}
+async function startCamera(){stopCamera();try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing}},audio:false});$('video').srcObject=stream;$('camErr').style.display='none';}
+ catch(e){$('camErrMsg').textContent=(location.protocol!=='https:'&&location.hostname!=='localhost')?'A câmera exige HTTPS (publique no GitHub Pages).':'Autorize a câmera ou use uma foto do aparelho.';$('camErr').style.display='flex';}}
+function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
+function switchCamera(){facing=facing==='environment'?'user':'environment';startCamera();}
+function nowParts(){const d=new Date(),p=n=>String(n).padStart(2,'0');return{iso:d.toISOString(),data:`${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`,hora:`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`};}
+function updateHud(){const t=nowParts();const g=lastPos?`${lastPos.coords.latitude.toFixed(5)}, ${lastPos.coords.longitude.toFixed(5)} (±${Math.round(lastPos.coords.accuracy)}m)`:'localização indisponível';$('camHud').innerHTML=`${t.data} ${t.hora}<br>${g}`;}
+setInterval(()=>{if($('viewEvid').classList.contains('active'))updateHud();},1000);
+function drawStamp(ctx,w,h){const t=nowParts(),lines=[`${t.data}  ${t.hora}`];
+ lines.push(lastPos?`Lat ${lastPos.coords.latitude.toFixed(6)}  Lng ${lastPos.coords.longitude.toFixed(6)}  (+/-${Math.round(lastPos.coords.accuracy)}m)`:'Localizacao indisponivel');
+ const obra=dados.obra||'';if(obra)lines.push('OBRA: '+obra);
+ const fs=Math.max(14,Math.round(Math.min(w,h)*0.032)),pad=Math.round(fs*0.6),lh=Math.round(fs*1.35),barH=lines.length*lh+pad*1.4;
+ ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,h-barH,w,barH);ctx.fillStyle='#fff';ctx.textBaseline='top';
+ lines.forEach((l,i)=>{ctx.font=`${i===0?700:600} ${i===0?fs:Math.round(fs*0.82)}px ui-monospace,Menlo,monospace`;if(i===2)ctx.fillStyle='#e3a008';ctx.fillText(l,pad,h-barH+pad*0.7+i*lh);ctx.fillStyle='#fff';});}
+function capture(){if(!stream){$('fileInput').click();return;}const v=$('video'),w=v.videoWidth,h=v.videoHeight;if(!w){toast('Câmera carregando…');return;}
+ const c=$('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.drawImage(v,0,0,w,h);drawStamp(ctx,w,h);openReview(c.toDataURL('image/jpeg',0.9));}
+$('fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const img=new Image();
+ img.onload=()=>{const max=1600,s=Math.min(1,max/Math.max(img.width,img.height)),w=Math.round(img.width*s),h=Math.round(img.height*s),c=$('canvas');
+  c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,h);drawStamp(ctx,w,h);openReview(c.toDataURL('image/jpeg',0.9));};
+ img.src=URL.createObjectURL(f);e.target.value='';});
+function makeEv(u){const t=nowParts();return{id:'ev_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),team,img:u,dataStr:t.data,horaStr:t.hora,iso:t.iso,lat:lastPos?lastPos.coords.latitude:null,lng:lastPos?lastPos.coords.longitude:null,acc:lastPos?Math.round(lastPos.coords.accuracy):null,note:''};}
+function openReview(u){pending=makeEv(u);$('reviewImg').src=u;$('reviewNote').value='';$('review').classList.add('open');setTimeout(()=>$('reviewNote').focus(),150);}
+function discardCapture(){pending=null;$('review').classList.remove('open');}
+function saveCapture(){if(!pending)return;pending.note=$('reviewNote').value.trim();evidences.push(pending);dbPut(pending);pending=null;$('review').classList.remove('open');renderGallery();updateCounts();toast('Evidência salva ✓');}
+function renderGallery(){const evs=curEvid();const n=evs.length;$('galEmpty').style.display=n?'none':'block';const list=$('galList');list.innerHTML='';
+ evs.forEach((ev,i)=>{const g=ev.lat!=null?`<b>${ev.lat.toFixed(6)}, ${ev.lng.toFixed(6)}</b> (±${ev.acc}m)`:'sem GPS';const card=document.createElement('div');card.className='card';
+  card.innerHTML=`<img src="${ev.img}"><div class="card-body"><div class="meta"><b>${ev.dataStr} ${ev.horaStr}</b><br>${g}</div>
+   <textarea placeholder="Comentário desta foto…">${ev.note||''}</textarea>
+   <div class="card-actions"><span class="num">FOTO ${String(i+1).padStart(2,'0')}</span><button class="del">Excluir</button></div></div>`;
+  card.querySelector('textarea').addEventListener('input',e=>{ev.note=e.target.value;dbPut(ev);});
+  card.querySelector('.del').addEventListener('click',()=>{if(confirm('Excluir esta foto?')){dbDel(ev.id);const gi=evidences.findIndex(x=>x.id===ev.id);if(gi>-1)evidences.splice(gi,1);renderGallery();updateCounts();}});
+  list.appendChild(card);});}
+
+/* ═══════════ CONTADORES / RESUMO / ABAS ═══════════ */
+function updateCounts(){const na=Object.keys(quant).length,ne=curEvid().length;
+ $('cntAtiv').style.display=na?'inline-block':'none';$('cntAtiv').textContent=na;
+ $('cntEvid').style.display=ne?'inline-block':'none';$('cntEvid').textContent=ne;}
+function aprCount(){return Object.values(apr.resp).filter(r=>r&&r.resp).length;}
+function renderSummary(){const na=Object.keys(quant).length,ne=curEvid().length;const cfg=TC();
+ $('summary').innerHTML=`<div class="row"><span>Equipe</span><span>${cfg.label}</span></div>
+  <div class="row"><span>Obra / SI</span><span>${dados.obra||'—'}</span></div>
+  <div class="row"><span>Técnico</span><span>${dados.tecnico||'—'}</span></div>
+  <div class="row"><span>Data</span><span>${dados.data?dados.data.split('-').reverse().join('/'):'—'}</span></div>
+  <div class="row"><span>Atividades apontadas</span><span>${na}</span></div>
+  <div class="row"><span>APR — itens respondidos</span><span>${aprCount()} / ${cfg.apr.reduce((s,x)=>s+x.q.length,0)}</span></div>
+  <div class="row"><span>Colaboradores (APR)</span><span>${apr.colab.length}</span></div>
+  <div class="row"><span>Foto da equipe</span><span>${apr.head.fotoEquipe?'✓ registrada':'—'}</span></div>
+  <div class="row"><span>Evidências (fotos)</span><span>${ne}</span></div>`;}
+function showView(v){document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+ $('view'+v).classList.add('active');$('tab'+v).classList.add('active');if(v==='Pdf')renderSummary();}
+
+/* ═══════════ PDF ÚNICO: Relatório + APR + Evidências ═══════════ */
+async function exportPDF(share){
+ const cfg=TC();
+ const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});const PW=210,PH=297,M=8;let y;
+ const fmtDate=s=>s?s.split('-').reverse().join('/'):'';
+ const ensure=need=>{if(y+need>PH-8){doc.addPage();y=12;return true;}return false;};
+ const boxHead=(txt,x,yy,w,h)=>{doc.setDrawColor(0);doc.setLineWidth(.2);doc.rect(x,yy,w,h);doc.setFontSize(6);doc.setTextColor(90);doc.setFont('helvetica','normal');doc.text(txt,x+1.5,yy+3);};
+ const cell=(label,val,x,yy,w,h)=>{boxHead(label,x,yy,w,h);doc.setFontSize(9);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(String(val||''),x+1.5,yy+h-2,{maxWidth:w-3});};
+
+ /* ---------- RELATÓRIO DE APONTAMENTO ---------- */
+ doc.setFillColor(0);doc.rect(M,10,14,9,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('DPL',M+7,16,{align:'center'});
+ doc.setTextColor(0);doc.setFontSize(12);doc.text(cfg.pdfTitle,M+22,16);
+ const W=PW-2*M;y=21;
+ cell('PLACA DO VEÍCULO',dados.placa,M,y,W*0.4,9);cell('DATA',fmtDate(dados.data),M+W*0.4,y,W*0.3,9);cell('KM INICIAL',dados.kmIni,M+W*0.7,y,W*0.15,9);cell('KM FINAL',dados.kmFim,M+W*0.85,y,W*0.15,9);y+=9;
+ cell('OBRA / N°SI / NDS / OCORRÊNCIA',dados.obra,M,y,W*0.62,9);cell('INÍCIO DO TURNO',dados.inicioTurno,M+W*0.62,y,W*0.19,9);cell('FIM DE TURNO',dados.fimTurno,M+W*0.81,y,W*0.19,9);y+=9;
+ cell('COMPONENTE; N° POSTE; ALIMENTADOR',dados.componente,M,y,W*0.62,9);cell('INÍCIO DESLOC.',dados.inicioDesloc,M+W*0.62,y,W*0.19,9);cell('CHEGADA LOCAL',dados.chegadaLocal,M+W*0.81,y,W*0.19,9);y+=9;
+ cell('ENDEREÇO; MUNICÍPIO',dados.endereco,M,y,W*0.62,9);cell('INÍCIO SERVIÇO',dados.inicioServico,M+W*0.62,y,W*0.19,9);cell('TÉRMINO SERVIÇO',dados.terminoServico,M+W*0.81,y,W*0.19,9);y+=9;
+ cell('TÉCNICO',dados.tecnico,M,y,W*0.31,9);cell('SUPERVISÃO',dados.supervisao,M+W*0.31,y,W*0.31,9);cell('INÍCIO REFEIÇÃO',dados.inicioRefeicao,M+W*0.62,y,W*0.19,9);cell('TÉRMINO REFEIÇÃO',dados.terminoRefeicao,M+W*0.81,y,W*0.19,9);y+=9;
+ cell('EQUIPE',dados.equipe,M,y,W*0.31,9);cell('EQUIPE DE APOIO',dados.equipeApoio,M+W*0.31,y,W*0.69,9);y+=11;
+ const todos=$('optTodos').checked,colD=W-46,x0=M;
+ const tblHead=()=>{doc.setFillColor(30,30,30);doc.rect(x0,y,W,6,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(7);
+  doc.text('CÓD',x0+1.5,y+4);doc.text('DESCRIÇÃO',x0+22,y+4);doc.text('UN',x0+colD+3,y+4);doc.text('PROG',x0+colD+13,y+4);doc.text('REAL',x0+colD+27,y+4);y+=6;doc.setTextColor(0);};
+ ensure(20);tblHead();
+ cfg.cats.forEach((cat,ci)=>{const items=cfg.atv.filter(a=>a.c===ci&&(todos||(quant[a.cod]&&(quant[a.cod].real||quant[a.cod].prog))));if(!items.length)return;
+  ensure(10);doc.setFillColor(227,160,8);doc.rect(x0,y,W,5,'F');doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(0);doc.text(cat,x0+1.5,y+3.5);y+=5;doc.setFont('helvetica','normal');doc.setFontSize(7);
+  items.forEach((a,idx)=>{const q=quant[a.cod]||{},dL=doc.splitTextToSize(a.d,colD-24),rh=Math.max(5,dL.length*3+1.5);ensure(rh+2);
+   if(idx%2){doc.setFillColor(244,244,244);doc.rect(x0,y,W,rh,'F');}doc.setDrawColor(210);doc.setLineWidth(.1);doc.rect(x0,y,W,rh);doc.setTextColor(0);
+   doc.text(a.cod,x0+1.5,y+3.3);doc.text(dL,x0+22,y+3.3);doc.text(a.u,x0+colD+3,y+3.3);
+   if(q.prog){doc.setFont('helvetica','bold');doc.text(String(q.prog),x0+colD+14,y+3.3);doc.setFont('helvetica','normal');}
+   if(q.real){doc.setFont('helvetica','bold');doc.text(String(q.real),x0+colD+28,y+3.3);doc.setFont('helvetica','normal');}y+=rh;});});
+ ensure(24);y+=3;boxHead('OBSERVAÇÕES',x0,y,W,20);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(0);doc.text(doc.splitTextToSize(dados.obs||'—',W-4),x0+2,y+6);y+=24;
+ ensure(20);const sw=(W-4)/2;doc.setDrawColor(0);doc.line(x0+4,y+12,x0+sw-4,y+12);doc.line(x0+sw+8,y+12,x0+W-4,y+12);
+ doc.setFontSize(8);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(dados.assTecnico||'',x0+sw/2,y+11,{align:'center'});doc.text(dados.assEncarregado||'',x0+sw+4+sw/2,y+11,{align:'center'});
+ doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(80);doc.text('ASSINATURA DO TÉCNICO EQUATORIAL',x0+sw/2,y+16,{align:'center'});doc.text('ASSINATURA DO ENCARREGADO',x0+sw+4+sw/2,y+16,{align:'center'});
+
+ /* ---------- APR (em folha nova) ---------- */
+ doc.addPage();y=12;
+ doc.setFillColor(0,120,90);doc.rect(M,10,W,10,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('ANÁLISE PRELIMINAR DE RISCOS (APR)',PW/2,14.6,{align:'center'});
+ doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.text(cfg.aprSub.toUpperCase(),PW/2,18.4,{align:'center'});y=23;
+ doc.setTextColor(0);
+ cell('EMPRESA',apr.head.empresa,M,y,W*0.5,8);cell('EQUIPE',apr.head.aEquipe,M+W*0.5,y,W*0.5,8);y+=8;
+ cell('DATA',fmtDate(apr.head.aData),M,y,W*0.25,8);cell('HORÁRIO',apr.head.aHorario,M+W*0.25,y,W*0.25,8);cell('N° DA OS',apr.head.aOS,M+W*0.5,y,W*0.5,8);y+=8;
+ cell('SERVIÇO',apr.head.aServico,M,y,W*0.5,8);cell('LOCAL / ENDEREÇO',apr.head.aLocal,M+W*0.5,y,W*0.5,8);y+=10;
+ cfg.apr.forEach(sec=>{ensure(12);doc.setFillColor(227,160,8);doc.rect(M,y,W,5,'F');doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(0);doc.text(sec.t.toUpperCase(),M+1.5,y+3.5);y+=6;
+  sec.q.forEach(q=>{const st=apr.resp[q.id]||{};const textW=W-36;const pL=doc.splitTextToSize(q.n+'. '+q.p,textW);const rowH=Math.max(pL.length*3.6,6);ensure(rowH+3);
+   doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(0);doc.text(pL,M+1,y+3);
+   const bw=11,bh=5,bx=PW-M-bw*3;['SIM','NÃO','N.A.'].forEach((lab,k)=>{const key=['SIM','NAO','NA'][k];const cx=bx+k*bw;
+     doc.setDrawColor(120);doc.setLineWidth(.2);doc.rect(cx,y,bw-1,bh);
+     doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(110);doc.text(lab,cx+(bw-1)/2,y+2,{align:'center'});
+     if(st.resp===key){doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(0);doc.text('X',cx+(bw-1)/2,y+4.6,{align:'center'});}});
+   y+=rowH+1;
+   if(st.ctrl)q.c.forEach((c,i)=>{if(st.ctrl[i]){const cL=doc.splitTextToSize(c,W-11);const ch=Math.max(cL.length*3,3.2);ensure(ch+1);
+     doc.setDrawColor(80);doc.setLineWidth(.2);doc.rect(M+4,y,2.6,2.6);doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(0);doc.text('X',M+5.3,y+2.05,{align:'center'});
+     doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(60);doc.text(cL,M+8.5,y+2.2);y+=ch+.6;}});
+   doc.setDrawColor(225);doc.setLineWidth(.1);doc.line(M,y+1,PW-M,y+1);y+=2.5;});});
+ // Croqui/obs
+ ensure(20);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(0);doc.text('CROQUI / OBSERVAÇÕES DA APR',M,y+3);y+=5;
+ doc.setDrawColor(0);doc.rect(M,y,W,16);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(doc.splitTextToSize(apr.head.croqui||'—',W-4),M+2,y+4);y+=20;
+ // Responsáveis (LM: 32/33 · PODA: 21/22 · LV: não possui)
+ if(cfg.resp){ensure(16);cell(cfg.resp[0]+'. RESP. CONSTATAÇÃO AUSÊNCIA DE TENSÃO',apr.head.respAusencia,M,y,W,8);y+=8;cell(cfg.resp[1]+'. RESP. INSTALAÇÃO ATERRAMENTO TEMPORÁRIO',apr.head.respAterr,M,y,W,8);y+=10;}
+ // Direito de recusa
+ ensure(14);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('DIREITO DE RECUSA',M,y+3);y+=5;
+ const recBoxes=(qtext,val)=>{ensure(8);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(0);const tL=doc.splitTextToSize(qtext,W-26);doc.text(tL,M,y+3);
+   const bw=11,bx=PW-M-bw*2;['SIM','NÃO'].forEach((lab,k)=>{const key=['SIM','NAO'][k];const cx=bx+k*bw;
+     doc.setDrawColor(120);doc.setLineWidth(.2);doc.rect(cx,y,bw-1,5);doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(110);doc.text(lab,cx+(bw-1)/2,y+2,{align:'center'});
+     if(val===key){doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(0);doc.text('X',cx+(bw-1)/2,y+4.6,{align:'center'});}});
+   y+=Math.max(tL.length*3.6,6);};
+ recBoxes(cfg.recusa[0]+'. É possível realizar a atividade com segurança?',apr.head.q34);
+ recBoxes(cfg.recusa[1]+'. Necessita utilizar o Direito de Recusa?',apr.head.q35);y+=1;
+ if(apr.head.recusaDesc){const rL=doc.splitTextToSize('Obs.: '+apr.head.recusaDesc,W-4);ensure(rL.length*3.6+2);doc.text(rL,M,y+3);y+=rL.length*3.6+2;}
+ // Colaboradores
+ if(apr.colab.length){ensure(20);y+=2;doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('COLABORADORES QUE PARTICIPARAM DA APR',M,y+3);y+=5;
+  doc.setFillColor(30,30,30);doc.rect(M,y,W,5,'F');doc.setTextColor(255);doc.setFontSize(6.5);
+  doc.text('MATRÍC.',M+1.5,y+3.5);doc.text('ASSINATURA',M+24,y+3.5);doc.text('ALTURA',M+W-60,y+3.5);doc.text('SEP',M+W-38,y+3.5);doc.text('ESP.CONF.',M+W-26,y+3.5);y+=5;doc.setTextColor(0);
+  const RH=12;
+  apr.colab.forEach((c,i)=>{ensure(RH);if(i%2){doc.setFillColor(244,244,244);doc.rect(M,y,W,RH,'F');}doc.setDrawColor(210);doc.setLineWidth(.1);doc.rect(M,y,W,RH);
+   doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text(String(c.mat||''),M+1.5,y+RH/2+1);
+   if(c.assinatura){try{const sp=doc.getImageProperties(c.assinatura);const maxW=W-90,maxH=RH-3;let sw2=maxW,sh=sw2*(sp.height/sp.width);if(sh>maxH){sh=maxH;sw2=sh*(sp.width/sp.height);}
+     doc.addImage(c.assinatura,'PNG',M+24,y+(RH-sh)/2,sw2,sh);}catch(e){}}
+   const cy=y+RH/2+1;doc.text(c.alt?'X':'',M+W-56,cy);doc.text(c.sep?'X':'',M+W-36,cy);doc.text(c.ec?'X':'',M+W-21,cy);y+=RH;});}
+ // Foto da equipe (após as assinaturas)
+ if(apr.head.fotoEquipe){
+  try{const p=doc.getImageProperties(apr.head.fotoEquipe);let fw=W*0.72,fh=fw*(p.height/p.width);const mh=120;if(fh>mh){fh=mh;fw=fh*(p.width/p.height);}
+   if(y+fh+12>PH-10){doc.addPage();y=12;}
+   y+=3;doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(0);doc.text('FOTO DA EQUIPE',M,y+3);y+=5;
+   doc.addImage(apr.head.fotoEquipe,'JPEG',M+(W-fw)/2,y,fw,fh);doc.setDrawColor(150);doc.setLineWidth(.2);doc.rect(M+(W-fw)/2,y,fw,fh);y+=fh+4;}catch(e){}}
+
+ /* ---------- EVIDÊNCIAS (uma por folha) ---------- */
+ const evs=curEvid();
+ for(let i=0;i<evs.length;i++){const ev=evs[i];doc.addPage();
+  doc.setFillColor(22,27,34);doc.rect(0,0,PW,16,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text('REGISTRO FOTOGRÁFICO — EVIDÊNCIA '+String(i+1).padStart(2,'0'),M,10);doc.setFontSize(7);doc.setTextColor(160);doc.text((dados.obra||cfg.label).substring(0,55),PW-M,10,{align:'right'});
+  let iw=PW-2*M,ih=iw,iy=22;try{const p=doc.getImageProperties(ev.img);ih=iw*(p.height/p.width);const mh=175;if(ih>mh){ih=mh;iw=ih*(p.width/p.height);}}catch(e){}
+  doc.addImage(ev.img,'JPEG',M+((PW-2*M)-iw)/2,iy,iw,ih);let my=iy+ih+8;
+  doc.setDrawColor(200);doc.setLineWidth(.2);doc.line(M,my,PW-M,my);my+=6;
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(20);doc.text('DATA / HORA',M,my);doc.text('GPS',M+70,my);
+  doc.setFont('helvetica','normal');doc.setFontSize(10);my+=6;doc.text(`${ev.dataStr}  ${ev.horaStr}`,M,my);
+  doc.text(ev.lat!=null?`${ev.lat.toFixed(6)}, ${ev.lng.toFixed(6)} (±${ev.acc}m)`:'Indisponível',M+70,my);my+=10;
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('COMENTÁRIO',M,my);my+=6;doc.setFont('helvetica','normal');doc.setFontSize(10);doc.text(doc.splitTextToSize(ev.note||'—',PW-2*M),M,my);}
+
+ // Rodapé com paginação
+ const total=doc.getNumberOfPages();for(let p=1;p<=total;p++){doc.setPage(p);doc.setFontSize(7);doc.setTextColor(150);doc.text(`Página ${p} de ${total}`,PW/2,PH-5,{align:'center'});}
+
+ const now=nowParts();const fname=`relatorio_${team}_${(dados.obra||'').replace(/[^\w]/g,'').slice(0,14)||now.data.replace(/\//g,'-')}.pdf`;
+ if(share){const blob=doc.output('blob'),file=new File([blob],fname,{type:'application/pdf'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({title:cfg.pdfTitle,text:dados.obra||'Relatório de serviço',files:[file]});}catch(e){if(e.name!=='AbortError')doc.save(fname);}}
+  else{toast('Compartilhamento indisponível — baixando…');doc.save(fname);}}
+ else doc.save(fname);
+}
+
+/* ═══════════ INÍCIO ═══════════ */
+(async function init(){
+ migrateOldKeys();
+ await openDB();evidences=(await dbAll()).sort((a,b)=>a.iso<b.iso?-1:1);
+ initInputs();
+ if(team&&TEAMS[team]){loadTeamData();renderAllTeam();}
+ else{openTeamSel();}
+ watchLocation();startCamera();
+})();
+window.addEventListener('pagehide',stopCamera);
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("./sw.js").catch(function(){});});}</script>
+</body>
+</html>
