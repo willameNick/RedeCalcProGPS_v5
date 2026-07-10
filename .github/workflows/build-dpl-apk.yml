@@ -48,10 +48,16 @@ jobs:
           grep -q "Relatório Diário DPL" "$dst/index.html"
           grep -q "CATS_PODA" "$dst/index.html"
 
-      - name: Rótulo do app = Relatório Diário DPL (apenas neste build)
+      - name: Identidade do app DPL — rótulo + applicationId próprio (instala separado do RedeCerta)
         run: |
+          set -e
+          # Rótulo mostrado no launcher
           sed -i 's#<string name="app_name">[^<]*</string>#<string name="app_name">Relatório Diário DPL</string>#' android/app/src/main/res/values/strings.xml
           sed -i 's#<string name="title_activity_main">[^<]*</string>#<string name="title_activity_main">Relatório Diário DPL</string>#' android/app/src/main/res/values/strings.xml
+          # applicationId próprio => instala lado a lado com o RedeCerta GPS
+          # (o namespace/pacote do código continua o mesmo; só muda a identidade de instalação)
+          sed -i 's#applicationId "com.willamenick.redecalcprogps"#applicationId "com.willamenick.relatoriodiariodpl"#' android/app/build.gradle
+          grep -q 'applicationId "com.willamenick.relatoriodiariodpl"' android/app/build.gradle
 
       - name: Setup JDK 21
         uses: actions/setup-java@v4
