@@ -1,0 +1,80 @@
+name: Build Relatório Diário DPL APK
+
+# Empacota o app da pasta relatorio-dpl/ (equipes Linha Morta / Linha Viva / Poda)
+# como APK Android. O projeto android/ é compartilhado com o app RedeCerta GPS:
+# fazemos o scaffolding do Capacitor e depois sobrepomos os arquivos web do DPL.
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "relatorio-dpl/**"
+      - "android/**"
+      - ".github/workflows/build-dpl-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scaffold Capacitor Android (gera runtime nativo em assets/public)
+        run: npm run sync
+
+      - name: Overlay do app Relatório Diário DPL
+        run: |
+          set -e
+          dst=android/app/src/main/assets/public
+          cp relatorio-dpl/index.html            "$dst/index.html"
+          cp relatorio-dpl/manifest.json         "$dst/manifest.json"
+          cp relatorio-dpl/sw.js                 "$dst/sw.js"
+          cp relatorio-dpl/jspdf.umd.min.js      "$dst/jspdf.umd.min.js"
+          cp relatorio-dpl/icon-192.png          "$dst/icon-192.png"
+          cp relatorio-dpl/icon-512.png          "$dst/icon-512.png"
+          cp relatorio-dpl/icon-512-maskable.png "$dst/icon-512-maskable.png"
+          mkdir -p "$dst/icons"
+          cp relatorio-dpl/icons/*.png           "$dst/icons/"
+          # Confere que o overlay levou o app multi-equipe (e não o RedeCerta)
+          grep -q "Relatório Diário DPL" "$dst/index.html"
+          grep -q "CATS_PODA" "$dst/index.html"
+
+      - name: Rótulo do app = Relatório Diário DPL (apenas neste build)
+        run: |
+          sed -i 's#<string name="app_name">[^<]*</string>#<string name="app_name">Relatório Diário DPL</string>#' android/app/src/main/res/values/strings.xml
+          sed -i 's#<string name="title_activity_main">[^<]*</string>#<string name="title_activity_main">Relatório Diário DPL</string>#' android/app/src/main/res/values/strings.xml
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Renomeia o APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk RelatorioDiarioDPL-debug.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RelatorioDiarioDPL-debug-apk
+          path: RelatorioDiarioDPL-debug.apk
+          if-no-files-found: error
