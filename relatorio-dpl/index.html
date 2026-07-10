@@ -3,24 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#f5f7fa">
+<meta name="theme-color" content="#0d1117">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Relatório Diário DPL</title>
 <script src="./jspdf.umd.min.js"></script>
 <style>
-  /* ── Tema claro: alta legibilidade sob sol, para uso em campo ── */
-  :root{--bg:#eef1f6;--panel:#ffffff;--panel2:#f1f4f9;--line:#c8d1e0;--txt:#111826;--muted:#57626f;--accent:#0b5fd7;--ok:#188038;--rec:#d93025;--amber:#a35c00;color-scheme:light}
+  /* ── Tema escuro (modelo do APK) ── */
+  :root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2a3242;--txt:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--ok:#2ea043;--rec:#e5484d;--amber:#e3a008;color-scheme:dark}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%}
   body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
   header{background:var(--panel);border-bottom:1px solid var(--line);padding:9px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-  .logo{background:#16233c;color:#fff;font-weight:800;font-size:12px;padding:3px 7px;border-radius:5px;letter-spacing:1px}
+  .logo{background:#fff;color:#0d1117;font-weight:800;font-size:12px;padding:3px 7px;border-radius:5px;letter-spacing:1px}
   header h1{font-size:13px;margin:0;font-weight:700;flex:1;line-height:1.2}
   header h1 small{display:block;color:var(--muted);font-weight:500;font-size:10px}
-  .team-chip{background:#e7f0fd;border:1px solid var(--accent);color:var(--accent);font-size:10px;font-weight:800;padding:5px 9px;border-radius:20px;cursor:pointer;white-space:nowrap}
+  .team-chip{background:rgba(47,129,247,.15);border:1px solid var(--accent);color:var(--accent);font-size:10px;font-weight:800;padding:5px 9px;border-radius:20px;cursor:pointer;white-space:nowrap}
   .gps-badge{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:4px 8px;border-radius:20px;white-space:nowrap}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
   .dot.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}.dot.err{background:var(--rec)}
@@ -41,7 +41,7 @@
   .search input:focus{border-color:var(--accent)}
   .cat-title{font-size:11px;color:var(--amber);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 7px;font-weight:700;padding-left:2px}
   .atv{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:7px}
-  .atv.filled{border-color:var(--ok);background:#e9f7ee}
+  .atv.filled{border-color:var(--ok);background:#12281a}
   .atv-info{flex:1;min-width:0}
   .atv-cod{font-size:10px;color:var(--muted);font-family:ui-monospace,monospace}
   .atv-desc{font-size:12px;line-height:1.3;margin-top:1px}
@@ -49,12 +49,12 @@
   .qty{display:flex;flex-direction:column;align-items:center;gap:2px}
   .qty span{font-size:9px;color:var(--muted);text-transform:uppercase}
   .qty input{width:46px;text-align:center;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 2px;border-radius:6px;font-size:14px;outline:none}
-  .qty input:focus{border-color:var(--accent)}.qty input.real{border-color:#8fd0a3}
+  .qty input:focus{border-color:var(--accent)}.qty input.real{border-color:#3a4a35}
   .no-res{text-align:center;color:var(--muted);padding:30px;font-size:13px}
   /* Seleção de equipe */
   .teamsel{position:fixed;inset:0;background:var(--bg);z-index:80;display:none;align-items:center;justify-content:center;padding:20px;padding-top:calc(env(safe-area-inset-top) + 20px)}
   .teamsel.open{display:flex}
-  .ts-box{width:100%;max-width:370px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 20px;text-align:center;box-shadow:0 10px 34px rgba(15,23,42,.14)}
+  .ts-box{width:100%;max-width:370px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 20px;text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.5)}
   .ts-box .logo{display:inline-block;font-size:15px;padding:6px 12px;margin-bottom:10px}
   .ts-box h2{margin:0 0 6px;font-size:17px}
   .ts-box p{margin:0 0 16px;color:var(--muted);font-size:12.5px;line-height:1.4}
@@ -62,7 +62,7 @@
   .ts-btn .em{font-size:22px;flex-shrink:0}
   .ts-btn div{flex:1}
   .ts-btn small{display:block;font-weight:500;color:var(--muted);font-size:10.5px;margin-top:2px}
-  .ts-btn:active{border-color:var(--accent);background:#e7f0fd}
+  .ts-btn:active{border-color:var(--accent);background:rgba(47,129,247,.12)}
   .ts-close{background:none;border:none;color:var(--muted);font-size:13px;margin-top:4px;cursor:pointer;display:none;padding:8px}
   /* APR */
   .apr-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;line-height:1.45;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:9px;padding:9px 11px;margin-bottom:12px}
@@ -71,13 +71,13 @@
   .apr-q .qh b{color:var(--accent);margin-right:4px}
   .snr{display:flex;gap:6px;margin-bottom:8px}
   .snr button{flex:1;padding:8px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer}
-  .snr button.sel-sim{background:#dff3e5;border-color:var(--ok);color:#116329}
-  .snr button.sel-nao{background:#fde7e5;border-color:var(--rec);color:#b3261e}
-  .snr button.sel-na{background:#fcf2d5;border-color:var(--amber);color:#8a5800}
+  .snr button.sel-sim{background:#12281a;border-color:var(--ok);color:#5bd97a}
+  .snr button.sel-nao{background:#2a1416;border-color:var(--rec);color:#ff8087}
+  .snr button.sel-na{background:#26210f;border-color:var(--amber);color:#f2c94c}
   .ctrl{display:flex;gap:8px;align-items:flex-start;padding:5px 2px;font-size:12px;line-height:1.3}
   .ctrl input{margin-top:1px;width:17px;height:17px;flex-shrink:0;appearance:none;-webkit-appearance:none;border:1px solid var(--line);border-radius:4px;background:var(--panel2);position:relative;cursor:pointer}
   .ctrl input:checked{border-color:var(--ok)}
-  .ctrl input:checked::after{content:"X";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--ok)}
+  .ctrl input:checked::after{content:"X";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#5bd97a}
   .apr-note{font-size:11.5px;color:var(--muted);background:var(--panel2);border:1px dashed var(--line);border-radius:9px;padding:9px 10px;margin-bottom:10px;line-height:1.45}
   .colab-row{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px;margin-bottom:8px}
   .colab-row .cr{display:flex;gap:6px;margin-bottom:6px}
@@ -85,7 +85,7 @@
   .colab-row input.mat{width:80px;flex-shrink:0}.colab-row input.nm{flex:1}
   .chips{display:flex;gap:6px;align-items:center}
   .chip{flex:1;text-align:center;padding:6px 4px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer}
-  .chip.on{background:#dff3e5;border-color:var(--ok);color:#116329}
+  .chip.on{background:#12281a;border-color:var(--ok);color:#5bd97a}
   .colab-row .rm{background:none;border:none;color:var(--rec);font-size:18px;cursor:pointer;padding:0 4px}
   /* Assinatura na linha do colaborador */
   .sign-box{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:7px;height:44px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;overflow:hidden}
@@ -120,7 +120,7 @@
   .cam-info{text-align:center;color:var(--muted);font-size:12px;margin-top:12px}
   .gal-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:16px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden}
-  .card img{width:100%;display:block;background:#dfe4ec}
+  .card img{width:100%;display:block;background:#000}
   .card-body{padding:10px 11px}
   .meta{font-size:10px;color:var(--muted);font-family:ui-monospace,monospace;line-height:1.6;margin-bottom:8px}
   .meta b{color:var(--txt)}
@@ -148,6 +148,7 @@
   .review textarea{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px;font-size:14px;min-height:70px;resize:none;outline:none;font-family:inherit;margin-bottom:12px}
   .review .rrow{display:flex;gap:10px}.review .rrow .btn{margin:0}
   .btn.discard{background:var(--panel);color:var(--rec);border:1px solid var(--line)}.btn.save{background:var(--ok);color:#fff}
+  .dev-sign{text-align:center;color:var(--muted);font-size:10px;letter-spacing:1.5px;opacity:.55;margin-top:16px;font-family:ui-monospace,monospace;user-select:none}
   .toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:#1a2333;border:1px solid #2c3a52;color:#fff;padding:10px 16px;border-radius:24px;font-size:13px;z-index:90;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88%;text-align:center}
   .toast.show{opacity:1}
   input[type=file]{display:none}
@@ -176,7 +177,7 @@
 
 <main>
   <!-- APR -->
-  <section id="viewApr" class="view active">
+  <section id="viewApr" class="view">
     <div class="apr-title" id="aprTitle">Análise Preliminar de Riscos</div>
     <div class="grp"><h3>APR — Identificação</h3>
       <div class="row2"><div class="field"><label>Empresa</label><input data-a="empresa" type="text"></div>
@@ -210,8 +211,8 @@
     </div>
   </section>
 
-  <!-- APONTAMENTO (dados do relatório + atividades) -->
-  <section id="viewApont" class="view">
+  <!-- RELATÓRIO (dados do relatório) -->
+  <section id="viewDados" class="view active">
     <div class="grp"><h3>Identificação</h3>
       <div class="field"><label>Obra / N°SI / NDS / Ocorrência</label><input data-f="obra" type="text"></div>
       <div class="field"><label>Componente; N° Poste; Alimentador</label><input data-f="componente" type="text"></div>
@@ -237,16 +238,20 @@
       <div class="row2"><div class="field"><label>Início Refeição</label><input data-f="inicioRefeicao" type="time"></div>
         <div class="field"><label>Término Refeição</label><input data-f="terminoRefeicao" type="time"></div></div>
     </div>
-    <div class="grp"><h3 id="atvHeader">Atividades — Apontamento</h3>
-      <div class="search" style="position:static;padding:0;margin:0"><input id="busca" type="text" placeholder="🔍 Buscar por código ou descrição…"></div>
-    </div>
-    <div id="atvList"></div>
     <div class="grp"><h3>Assinaturas / Observações</h3>
       <div class="field"><label>Técnico Equatorial (nome)</label><input data-f="assTecnico" type="text"></div>
+      <div class="field"><label>Assinatura do Técnico</label><div class="sign-box" id="signBoxTec">✍️ Assinar</div></div>
       <div class="field"><label>Encarregado (nome)</label><input data-f="assEncarregado" type="text"></div>
+      <div class="field"><label>Assinatura do Encarregado</label><div class="sign-box" id="signBoxEnc">✍️ Assinar</div></div>
       <div class="field"><label>Observações</label><textarea data-f="obs"></textarea></div>
       <button class="btn-ghost" onclick="novoRelatorio()">🗑️ Novo relatório (limpar tudo desta equipe)</button>
     </div>
+  </section>
+
+  <!-- ATIVIDADES -->
+  <section id="viewAtiv" class="view">
+    <div class="search"><input id="busca" type="text" placeholder="🔍 Buscar por código ou descrição…"></div>
+    <div id="atvList"></div>
   </section>
 
   <!-- EVIDÊNCIAS -->
@@ -277,13 +282,15 @@
     <label class="opt"><input type="checkbox" id="optTodos"> Incluir <b>todos</b> os códigos de atividade no PDF (como a ficha impressa). Desmarcado = só os apontados.</label>
     <button class="btn share" onclick="exportPDF(true)">📤 Gerar e compartilhar PDF (Relatório + APR + Fotos)</button>
     <button class="btn dl" onclick="exportPDF(false)">⬇️ Baixar PDF</button>
+    <div class="dev-sign">N!coll@5188</div>
   </section>
 </main>
 
 <nav>
-  <button id="tabApr" class="active" onclick="showView('Apr')"><span class="ic">⚠️</span>APR</button>
-  <button id="tabApont" onclick="showView('Apont')"><span class="ic">📋</span>Apontamento<span id="cntAtiv" class="tab-count" style="display:none">0</span></button>
-  <button id="tabEvid" onclick="showView('Evid')"><span class="ic">📷</span>Evidências<span id="cntEvid" class="tab-count" style="display:none">0</span></button>
+  <button id="tabDados" class="active" onclick="showView('Dados')"><span class="ic">📋</span>Relatório</button>
+  <button id="tabAtiv" onclick="showView('Ativ')"><span class="ic">🔧</span>Atividades<span id="cntAtiv" class="tab-count" style="display:none">0</span></button>
+  <button id="tabApr" onclick="showView('Apr')"><span class="ic">⚠️</span>APR</button>
+  <button id="tabEvid" onclick="showView('Evid')"><span class="ic">📷</span>Fotos<span id="cntEvid" class="tab-count" style="display:none">0</span></button>
   <button id="tabPdf" onclick="showView('Pdf')"><span class="ic">📄</span>PDF</button>
 </nav>
 
@@ -635,6 +642,14 @@ function applyTeamUI(){
 function hydrate(){
  document.querySelectorAll('[data-f]').forEach(el=>{el.value=dados[el.dataset.f]??'';});
  document.querySelectorAll('[data-a]').forEach(el=>{el.value=apr.head[el.dataset.a]??'';});
+ renderApontSigns();
+}
+function renderApontSigns(){
+ [['signBoxTec','assTecnicoImg'],['signBoxEnc','assEncarregadoImg']].forEach(([boxId,key])=>{
+  const box=$(boxId);if(!box)return;const v=dados[key];
+  if(v){box.classList.add('signed');box.innerHTML=`<img src="${v}" alt="assinatura">`;}
+  else{box.classList.remove('signed');box.textContent='✍️ Assinar';}
+ });
 }
 function renderAllTeam(){
  applyTeamUI();hydrate();
@@ -643,7 +658,7 @@ function renderAllTeam(){
 function chooseTeam(t){
  team=t;localStorage.setItem('dpl_team',t);
  loadTeamData();renderAllTeam();closeTeamSel();
- showView('Apr');
+ showView('Dados');
  toast('Equipe: '+TC().label);
 }
 function openTeamSel(){$('tsClose').style.display=team?'inline-block':'none';$('teamSel').classList.add('open');}
@@ -653,6 +668,8 @@ function closeTeamSel(){if(team)$('teamSel').classList.remove('open');}
 function initInputs(){
  document.querySelectorAll('[data-f]').forEach(el=>{el.addEventListener('input',()=>{dados[el.dataset.f]=el.value;saveDados();});});
  document.querySelectorAll('[data-a]').forEach(el=>{el.addEventListener('input',()=>{apr.head[el.dataset.a]=el.value;saveApr();});});
+ $('signBoxTec').addEventListener('click',()=>openSignDados('assTecnicoImg'));
+ $('signBoxEnc').addEventListener('click',()=>openSignDados('assEncarregadoImg'));
 }
 function novoRelatorio(){if(!confirm('Limpar dados, atividades, APR, foto da equipe e evidências da equipe '+TC().label+'?'))return;
  dados={};quant={};apr={head:{},resp:{},colab:[]};
@@ -743,18 +760,20 @@ $('teamPhotoInput').addEventListener('change',e=>{const f=e.target.files[0];if(!
  img.src=URL.createObjectURL(f);e.target.value='';});
 
 /* ═══════════ ASSINATURA DIGITAL ═══════════ */
-let sigIdx=-1,sigCtx=null,sigDrawing=false,sigHasInk=false,sigLast=null;
-function openSign(i){sigIdx=i;$('sigModal').classList.add('open');
+let sigTarget=null,sigCtx=null,sigDrawing=false,sigHasInk=false,sigLast=null;
+function openSigModal(){$('sigModal').classList.add('open');
  requestAnimationFrame(()=>{const cv=$('sigCanvas'),w=$('sigPad');const r=w.getBoundingClientRect();
   cv.width=Math.round(r.width);cv.height=Math.round(r.height);
   sigCtx=cv.getContext('2d');sigCtx.lineWidth=2.5;sigCtx.lineCap='round';sigCtx.lineJoin='round';sigCtx.strokeStyle='#0d1117';
   sigHasInk=false;});}
+function openSign(i){sigTarget={type:'colab',idx:i};openSigModal();}
+function openSignDados(key){sigTarget={type:'dados',key};openSigModal();}
 function sigPos(e){const cv=$('sigCanvas'),r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
 function sigStart(e){e.preventDefault();sigDrawing=true;sigLast=sigPos(e);}
 function sigMove(e){if(!sigDrawing)return;e.preventDefault();const p=sigPos(e);sigCtx.beginPath();sigCtx.moveTo(sigLast.x,sigLast.y);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigLast=p;sigHasInk=true;}
 function sigEnd(e){sigDrawing=false;}
 function clearSign(){if(sigCtx)sigCtx.clearRect(0,0,$('sigCanvas').width,$('sigCanvas').height);sigHasInk=false;}
-function closeSign(){$('sigModal').classList.remove('open');sigIdx=-1;}
+function closeSign(){$('sigModal').classList.remove('open');sigTarget=null;}
 function trimSign(src){const w=src.width,h=src.height,d=src.getContext('2d').getImageData(0,0,w,h).data;
  let x0=w,y0=h,x1=0,y1=0,found=false;
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(d[(y*w+x)*4+3]>10){found=true;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}}
@@ -762,8 +781,10 @@ function trimSign(src){const w=src.width,h=src.height,d=src.getContext('2d').get
  const pad=8;x0=Math.max(0,x0-pad);y0=Math.max(0,y0-pad);x1=Math.min(w-1,x1+pad);y1=Math.min(h-1,y1+pad);
  const cw=x1-x0+1,ch=y1-y0+1,out=document.createElement('canvas');out.width=cw;out.height=ch;
  out.getContext('2d').drawImage(src,x0,y0,cw,ch,0,0,cw,ch);return out.toDataURL('image/png');}
-function saveSign(){if(sigIdx<0)return;if(!sigHasInk){toast('Assine antes de salvar');return;}
- apr.colab[sigIdx].assinatura=trimSign($('sigCanvas'));saveApr();closeSign();renderColab();}
+function saveSign(){if(!sigTarget){closeSign();return;}if(!sigHasInk){toast('Assine antes de salvar');return;}
+ const data=trimSign($('sigCanvas'));
+ if(sigTarget.type==='colab'){apr.colab[sigTarget.idx].assinatura=data;saveApr();closeSign();renderColab();}
+ else{dados[sigTarget.key]=data;saveDados();closeSign();renderApontSigns();toast('Assinatura salva ✓');}}
 
 /* ═══════════ GPS / CÂMERA ═══════════ */
 function watchLocation(){if(!navigator.geolocation){gps('err','GPS indisp.');return;}
@@ -851,8 +872,12 @@ async function exportPDF(share){
    if(q.prog){doc.setFont('helvetica','bold');doc.text(String(q.prog),x0+colD+14,y+3.3);doc.setFont('helvetica','normal');}
    if(q.real){doc.setFont('helvetica','bold');doc.text(String(q.real),x0+colD+28,y+3.3);doc.setFont('helvetica','normal');}y+=rh;});});
  ensure(24);y+=3;boxHead('OBSERVAÇÕES',x0,y,W,20);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(0);doc.text(doc.splitTextToSize(dados.obs||'—',W-4),x0+2,y+6);y+=24;
- ensure(20);const sw=(W-4)/2;doc.setDrawColor(0);doc.line(x0+4,y+12,x0+sw-4,y+12);doc.line(x0+sw+8,y+12,x0+W-4,y+12);
- doc.setFontSize(8);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(dados.assTecnico||'',x0+sw/2,y+11,{align:'center'});doc.text(dados.assEncarregado||'',x0+sw+4+sw/2,y+11,{align:'center'});
+ ensure(22);const sw=(W-4)/2;
+ const drawAssin=(imgKey,nameVal,cx)=>{const img=dados[imgKey];
+   if(img){try{const p=doc.getImageProperties(img);const maxW=sw-16,maxH=9;let iw=maxW,ih=iw*(p.height/p.width);if(ih>maxH){ih=maxH;iw=ih*(p.width/p.height);}doc.addImage(img,'PNG',cx-iw/2,y+11.5-ih,iw,ih);}catch(e){}}
+   else if(nameVal){doc.setFontSize(8);doc.setTextColor(0);doc.setFont('helvetica','bold');doc.text(nameVal,cx,y+10.5,{align:'center'});}};
+ doc.setDrawColor(0);doc.line(x0+4,y+12,x0+sw-4,y+12);doc.line(x0+sw+8,y+12,x0+W-4,y+12);
+ drawAssin('assTecnicoImg',dados.assTecnico,x0+sw/2);drawAssin('assEncarregadoImg',dados.assEncarregado,x0+sw+4+sw/2);
  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(80);doc.text('ASSINATURA DO TÉCNICO EQUATORIAL',x0+sw/2,y+16,{align:'center'});doc.text('ASSINATURA DO ENCARREGADO',x0+sw+4+sw/2,y+16,{align:'center'});
 
  /* ---------- APR (em folha nova) ---------- */
