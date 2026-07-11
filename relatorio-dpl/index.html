@@ -141,6 +141,10 @@
   nav button{flex:1;background:none;border:none;color:var(--muted);padding:8px 1px 6px;font-size:9.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
   nav button .ic{font-size:18px}nav button.active{color:var(--accent);font-weight:700}
   .tab-count{position:absolute;top:2px;right:12px;background:var(--rec);color:#fff;font-size:9px;font-weight:700;border-radius:9px;padding:0 4px;min-width:14px;text-align:center}
+  .tab-lock{position:absolute;top:3px;right:9px;font-size:10px;display:none;line-height:1}
+  nav button.locked{opacity:.42}
+  nav button.locked .tab-lock{display:block}
+  nav button.locked .tab-count{display:none!important}
   .review{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column;padding:16px;padding-top:calc(env(safe-area-inset-top) + 16px)}
   .review.open{display:flex}.review h2{font-size:15px;margin:0 0 10px}
   .review .prev{flex:1;overflow:auto;border-radius:12px;border:1px solid var(--line);background:#000;margin-bottom:12px}
@@ -152,6 +156,34 @@
   .toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);background:#1a2333;border:1px solid #2c3a52;color:#fff;padding:10px 16px;border-radius:24px;font-size:13px;z-index:90;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88%;text-align:center}
   .toast.show{opacity:1}
   input[type=file]{display:none}
+  /* Banner de identificação (repassado do Relatório) */
+  .ident-head{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:9px;padding:9px 11px;margin-bottom:12px}
+  .ident-head .ih-t{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:5px}
+  .ident-head .ih-g{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px}
+  .ident-head .ih-i{font-size:12px;line-height:1.3;min-width:0}
+  .ident-head .ih-i b{color:var(--muted);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:1px}
+  .ident-head .ih-i span{color:var(--txt);word-break:break-word}
+  .ident-head .ih-full{grid-column:1/-1}
+  .ident-head .ih-empty{color:var(--muted);font-style:italic;font-size:11px}
+  /* Toggle estilo do relógio */
+  h3 .clk-toggle{display:inline-flex;margin-left:8px;vertical-align:middle;border:1px solid var(--line);border-radius:7px;overflow:hidden;text-transform:none;letter-spacing:0}
+  .clk-btn{background:var(--panel2);border:none;color:var(--muted);font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer}
+  .clk-btn.on{background:rgba(47,129,247,.18);color:var(--accent)}
+  .field.time-field{position:relative}
+  .time-now{position:absolute;right:6px;top:26px;background:var(--panel);border:1px solid var(--line);color:var(--accent);border-radius:6px;font-size:11px;font-weight:700;padding:5px 8px;cursor:pointer;display:none}
+  body.clk-digital .time-now{display:block}
+  /* Histórico */
+  .hist-note{font-size:11.5px;color:var(--muted);background:var(--panel2);border:1px dashed var(--line);border-radius:9px;padding:9px 10px;margin-bottom:12px;line-height:1.45}
+  .hist-note b{color:var(--txt)}
+  .hist-item{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:10px}
+  .hist-item .hi-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:7px}
+  .hist-item .hi-obra{font-size:13px;font-weight:700;line-height:1.3;word-break:break-word}
+  .hist-item .hi-team{font-size:9px;color:var(--accent);font-weight:700;background:rgba(47,129,247,.15);border:1px solid var(--accent);border-radius:20px;padding:2px 7px;white-space:nowrap;flex-shrink:0}
+  .hist-item .hi-meta{font-size:10.5px;color:var(--muted);font-family:ui-monospace,monospace;line-height:1.6;margin-bottom:9px}
+  .hist-item .hi-actions{display:flex;gap:8px}
+  .hist-item .hi-actions button{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--txt);display:flex;align-items:center;justify-content:center;gap:5px}
+  .hist-item .hi-actions .hi-share{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .hist-item .hi-actions .hi-del{color:var(--rec);flex:0 0 auto;padding:9px 13px}
 </style>
 </head>
 <body>
@@ -178,6 +210,7 @@
 <main>
   <!-- APR -->
   <section id="viewApr" class="view">
+    <div class="ident-head" id="identApr"></div>
     <div class="apr-title" id="aprTitle">Análise Preliminar de Riscos</div>
     <div class="grp"><h3>APR — Identificação</h3>
       <div class="row2"><div class="field"><label>Empresa</label><input data-a="empresa" type="text"></div>
@@ -228,15 +261,15 @@
       <div class="row2"><div class="field"><label>KM Inicial</label><input data-f="kmIni" type="number" inputmode="numeric"></div>
         <div class="field"><label>KM Final</label><input data-f="kmFim" type="number" inputmode="numeric"></div></div>
     </div>
-    <div class="grp"><h3>Horários</h3>
-      <div class="row2"><div class="field"><label>Início do Turno</label><input data-f="inicioTurno" type="time"></div>
-        <div class="field"><label>Fim de Turno</label><input data-f="fimTurno" type="time"></div></div>
-      <div class="row2"><div class="field"><label>Início Deslocamento</label><input data-f="inicioDesloc" type="time"></div>
-        <div class="field"><label>Chegada no Local</label><input data-f="chegadaLocal" type="time"></div></div>
-      <div class="row2"><div class="field"><label>Início Serviço</label><input data-f="inicioServico" type="time"></div>
-        <div class="field"><label>Término Serviço</label><input data-f="terminoServico" type="time"></div></div>
-      <div class="row2"><div class="field"><label>Início Refeição</label><input data-f="inicioRefeicao" type="time"></div>
-        <div class="field"><label>Término Refeição</label><input data-f="terminoRefeicao" type="time"></div></div>
+    <div class="grp"><h3>Horários<span class="clk-toggle"><button type="button" class="clk-btn" id="clkNativo" onclick="setClockStyle('nativo')">🕐 Relógio</button><button type="button" class="clk-btn" id="clkDigital" onclick="setClockStyle('digital')">⌨️ Digital</button></span></h3>
+      <div class="row2"><div class="field time-field"><label>Início do Turno</label><input class="time-f" data-f="inicioTurno" type="time"><button type="button" class="time-now" data-nowfor="inicioTurno">agora</button></div>
+        <div class="field time-field"><label>Fim de Turno</label><input class="time-f" data-f="fimTurno" type="time"><button type="button" class="time-now" data-nowfor="fimTurno">agora</button></div></div>
+      <div class="row2"><div class="field time-field"><label>Início Deslocamento</label><input class="time-f" data-f="inicioDesloc" type="time"><button type="button" class="time-now" data-nowfor="inicioDesloc">agora</button></div>
+        <div class="field time-field"><label>Chegada no Local</label><input class="time-f" data-f="chegadaLocal" type="time"><button type="button" class="time-now" data-nowfor="chegadaLocal">agora</button></div></div>
+      <div class="row2"><div class="field time-field"><label>Início Serviço</label><input class="time-f" data-f="inicioServico" type="time"><button type="button" class="time-now" data-nowfor="inicioServico">agora</button></div>
+        <div class="field time-field"><label>Término Serviço</label><input class="time-f" data-f="terminoServico" type="time"><button type="button" class="time-now" data-nowfor="terminoServico">agora</button></div></div>
+      <div class="row2"><div class="field time-field"><label>Início Refeição</label><input class="time-f" data-f="inicioRefeicao" type="time"><button type="button" class="time-now" data-nowfor="inicioRefeicao">agora</button></div>
+        <div class="field time-field"><label>Término Refeição</label><input class="time-f" data-f="terminoRefeicao" type="time"><button type="button" class="time-now" data-nowfor="terminoRefeicao">agora</button></div></div>
     </div>
     <div class="grp"><h3>Assinaturas / Observações</h3>
       <div class="field"><label>Técnico Equatorial (nome)</label><input data-f="assTecnico" type="text"></div>
@@ -250,6 +283,7 @@
 
   <!-- ATIVIDADES -->
   <section id="viewAtiv" class="view">
+    <div class="ident-head" id="identAtiv"></div>
     <div class="search"><input id="busca" type="text" placeholder="🔍 Buscar por código ou descrição…"></div>
     <div id="atvList"></div>
   </section>
@@ -284,14 +318,22 @@
     <button class="btn dl" onclick="exportPDF(false)">⬇️ Baixar PDF</button>
     <div class="dev-sign">N!coll@$</div>
   </section>
+
+  <!-- HISTÓRICO -->
+  <section id="viewHist" class="view">
+    <div class="hist-note" id="histNote">🗂️ Todos os relatórios gerados ficam salvos aqui e, no aparelho, na pasta <b>Documentos/RelatoriosDPL</b>. Toque para compartilhar ou baixar novamente. <b>Ao salvar ou compartilhar</b>, o app zera os campos automaticamente para um novo relatório.</div>
+    <div id="histList"></div>
+    <div id="histEmpty" class="empty">Nenhum relatório salvo ainda. Gere um PDF na aba PDF.</div>
+  </section>
 </main>
 
 <nav>
   <button id="tabDados" class="active" onclick="showView('Dados')"><span class="ic">📋</span>Relatório</button>
-  <button id="tabAtiv" onclick="showView('Ativ')"><span class="ic">🔧</span>Atividades<span id="cntAtiv" class="tab-count" style="display:none">0</span></button>
   <button id="tabApr" onclick="showView('Apr')"><span class="ic">⚠️</span>APR</button>
-  <button id="tabEvid" onclick="showView('Evid')"><span class="ic">📷</span>Fotos<span id="cntEvid" class="tab-count" style="display:none">0</span></button>
-  <button id="tabPdf" onclick="showView('Pdf')"><span class="ic">📄</span>PDF</button>
+  <button id="tabAtiv" onclick="showView('Ativ')"><span class="ic">🔧</span>Atividades<span id="cntAtiv" class="tab-count" style="display:none">0</span><span class="tab-lock">🔒</span></button>
+  <button id="tabEvid" onclick="showView('Evid')"><span class="ic">📷</span>Evidências<span id="cntEvid" class="tab-count" style="display:none">0</span><span class="tab-lock">🔒</span></button>
+  <button id="tabPdf" onclick="showView('Pdf')"><span class="ic">📄</span>PDF<span class="tab-lock">🔒</span></button>
+  <button id="tabHist" onclick="showView('Hist')"><span class="ic">🗂️</span>Histórico<span id="cntHist" class="tab-count" style="display:none">0</span></button>
 </nav>
 
 <div class="review" id="review">
@@ -606,10 +648,17 @@ function saveDados(){localStorage.setItem(K('dados'),JSON.stringify(dados));}
 function saveQuant(){localStorage.setItem(K('quant'),JSON.stringify(quant));updateCounts();}
 function saveApr(){try{localStorage.setItem(K('apr'),JSON.stringify(apr));}catch(e){toast('⚠️ Memória cheia — remova a foto da equipe ou evidências antigas');}}
 let db=null;
-function openDB(){return new Promise(res=>{const r=indexedDB.open('lm-evid',1);r.onupgradeneeded=e=>e.target.result.createObjectStore('itens',{keyPath:'id'});r.onsuccess=e=>{db=e.target.result;res();};r.onerror=()=>res();});}
+function openDB(){return new Promise(res=>{const r=indexedDB.open('lm-evid',2);
+ r.onupgradeneeded=e=>{const d=e.target.result;
+  if(!d.objectStoreNames.contains('itens'))d.createObjectStore('itens',{keyPath:'id'});
+  if(!d.objectStoreNames.contains('historico'))d.createObjectStore('historico',{keyPath:'id'});};
+ r.onsuccess=e=>{db=e.target.result;res();};r.onerror=()=>res();});}
 function dbPut(i){if(db)db.transaction('itens','readwrite').objectStore('itens').put(i);}
 function dbDel(id){if(db)db.transaction('itens','readwrite').objectStore('itens').delete(id);}
 function dbAll(){return new Promise(res=>{if(!db)return res([]);const q=db.transaction('itens','readonly').objectStore('itens').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);});}
+function histPut(rec){return new Promise(res=>{if(!db)return res(false);try{const tx=db.transaction('historico','readwrite');tx.oncomplete=()=>res(true);tx.onerror=()=>res(false);tx.objectStore('historico').put(rec);}catch(e){res(false);}});}
+function histDel(id){if(db)db.transaction('historico','readwrite').objectStore('historico').delete(id);}
+function histAll(){return new Promise(res=>{if(!db)return res([]);const q=db.transaction('historico','readonly').objectStore('historico').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);});}
 const evTeam=e=>e.team||'LM';
 const curEvid=()=>evidences.filter(e=>evTeam(e)===team);
 
@@ -651,8 +700,27 @@ function renderApontSigns(){
   else{box.classList.remove('signed');box.textContent='✍️ Assinar';}
  });
 }
+/* Identificação repassada do Relatório para APR e Atividades */
+function syncAprFromDados(){ // preenche o cabeçalho da APR com o que já foi digitado no Relatório (só campos vazios)
+ const map={aEquipe:'equipe',aData:'data',aLocal:'endereco',aServico:'obra'};let changed=false;
+ for(const ak in map){const dk=map[ak];if((apr.head[ak]===undefined||apr.head[ak]==='')&&dados[dk]){apr.head[ak]=dados[dk];changed=true;}}
+ if(changed)saveApr();
+}
+function identHeadHTML(){
+ const fmt=s=>s?String(s).split('-').reverse().join('/'):'';
+ const fields=[
+  {l:'Obra / SI',v:dados.obra,full:true},
+  {l:'Endereço; Município',v:dados.endereco,full:true},
+  {l:'Equipe',v:dados.equipe},{l:'Data',v:fmt(dados.data)},
+  {l:'Técnico',v:dados.tecnico},{l:'Supervisão',v:dados.supervisao}];
+ const filled=fields.filter(f=>f.v&&String(f.v).trim()!=='');
+ const body=filled.length?filled.map(f=>`<div class="ih-i${f.full?' ih-full':''}"><b>${f.l}</b><span>${f.v}</span></div>`).join('')
+   :'<div class="ih-i ih-full ih-empty">Preencha a Identificação na aba Relatório — os dados aparecem aqui automaticamente.</div>';
+ return `<div class="ih-t">📋 Identificação (Relatório)</div><div class="ih-g">${body}</div>`;
+}
+function renderIdentHead(){const h=identHeadHTML();const a=$('identApr'),b=$('identAtiv');if(a)a.innerHTML=h;if(b)b.innerHTML=h;}
 function renderAllTeam(){
- applyTeamUI();hydrate();
+ applyTeamUI();syncAprFromDados();hydrate();renderIdentHead();
  renderAtividades($('busca').value||'');renderAPR();renderColab();renderGallery();updateCounts();renderSummary();
 }
 function chooseTeam(t){
@@ -666,16 +734,40 @@ function closeTeamSel(){if(team)$('teamSel').classList.remove('open');}
 
 /* ═══════════ DADOS / NOVO RELATÓRIO ═══════════ */
 function initInputs(){
- document.querySelectorAll('[data-f]').forEach(el=>{el.addEventListener('input',()=>{dados[el.dataset.f]=el.value;saveDados();});});
+ document.querySelectorAll('[data-f]').forEach(el=>{el.addEventListener('input',()=>{dados[el.dataset.f]=el.value;saveDados();renderIdentHead();});});
  document.querySelectorAll('[data-a]').forEach(el=>{el.addEventListener('input',()=>{apr.head[el.dataset.a]=el.value;saveApr();});});
  $('signBoxTec').addEventListener('click',()=>openSignDados('assTecnicoImg'));
  $('signBoxEnc').addEventListener('click',()=>openSignDados('assEncarregadoImg'));
+ initClock();
 }
-function novoRelatorio(){if(!confirm('Limpar dados, atividades, APR, foto da equipe e evidências da equipe '+TC().label+'?'))return;
+
+/* ═══════════ ESTILO DO RELÓGIO (Horários) ═══════════ */
+function clockStyle(){return localStorage.getItem('dpl_clock')||'digital';}
+function applyClockStyle(){const s=clockStyle();document.body.classList.toggle('clk-digital',s==='digital');
+ document.querySelectorAll('.time-f').forEach(inp=>{
+  if(s==='nativo'){inp.type='time';inp.removeAttribute('inputmode');inp.removeAttribute('maxlength');inp.placeholder='';}
+  else{inp.type='text';inp.setAttribute('inputmode','numeric');inp.setAttribute('maxlength','5');inp.placeholder='--:--';}});
+ const n=$('clkNativo'),d=$('clkDigital');if(n)n.classList.toggle('on',s==='nativo');if(d)d.classList.toggle('on',s==='digital');}
+function setClockStyle(s){localStorage.setItem('dpl_clock',s);applyClockStyle();}
+function maskTime(v){v=String(v).replace(/[^0-9]/g,'').slice(0,4);if(v.length>=3)v=v.slice(0,2)+':'+v.slice(2);
+ // limita horas/minutos
+ if(v.length>=2){let h=Math.min(23,+v.slice(0,2));v=String(h).padStart(2,'0')+v.slice(2);}
+ if(v.length===5){let m=Math.min(59,+v.slice(3,5));v=v.slice(0,3)+String(m).padStart(2,'0');}
+ return v;}
+function initClock(){
+ document.querySelectorAll('.time-f').forEach(inp=>inp.addEventListener('input',()=>{
+  if(clockStyle()!=='digital')return;const v=maskTime(inp.value);inp.value=v;dados[inp.dataset.f]=v;saveDados();renderIdentHead();}));
+ document.querySelectorAll('.time-now').forEach(b=>b.addEventListener('click',()=>{const key=b.dataset.nowfor,d=new Date(),p=n=>String(n).padStart(2,'0');
+  const t=p(d.getHours())+':'+p(d.getMinutes());const inp=document.querySelector('.time-f[data-f="'+key+'"]');if(inp)inp.value=t;dados[key]=t;saveDados();renderIdentHead();}));
+ applyClockStyle();
+}
+function clearTeamData(){ // zera os dados de trabalho da equipe atual (o PDF já fica salvo no Histórico)
  dados={};quant={};apr={head:{},resp:{},colab:[]};
  localStorage.removeItem(K('dados'));localStorage.removeItem(K('quant'));localStorage.removeItem(K('apr'));
  curEvid().forEach(e=>dbDel(e.id));evidences=evidences.filter(e=>evTeam(e)!==team);
- hydrate();renderAtividades('');renderAPR();renderColab();renderGallery();updateCounts();renderSummary();toast('Novo relatório iniciado');}
+ hydrate();renderIdentHead();renderAtividades('');renderAPR();renderColab();renderGallery();updateCounts();renderSummary();}
+function novoRelatorio(){if(!confirm('Limpar dados, atividades, APR, foto da equipe e evidências da equipe '+TC().label+'?'))return;
+ clearTeamData();toast('Novo relatório iniciado');}
 
 /* ═══════════ ATIVIDADES ═══════════ */
 function renderAtividades(filtro){const list=$('atvList');list.innerHTML='';filtro=(filtro||'').toUpperCase();let shown=0;
@@ -716,7 +808,8 @@ function renderRecusa(){const box=$('recusaBox');const q34=apr.head.q34||'',q35=
   <div class="qh" style="font-size:12.5px;margin:8px 0 6px">${nB}. Necessita utilizar o Direito de Recusa?</div>
   <div class="snr" id="snr35"><button data-v="SIM" class="${q35==='SIM'?'sel-sim':''}">SIM</button><button data-v="NAO" class="${q35==='NAO'?'sel-nao':''}">NÃO</button></div>`;
  box.querySelectorAll('#snr34 button').forEach(b=>b.onclick=()=>{apr.head.q34=apr.head.q34===b.dataset.v?'':b.dataset.v;saveApr();renderRecusa();});
- box.querySelectorAll('#snr35 button').forEach(b=>b.onclick=()=>{apr.head.q35=apr.head.q35===b.dataset.v?'':b.dataset.v;saveApr();renderRecusa();});}
+ box.querySelectorAll('#snr35 button').forEach(b=>b.onclick=()=>{apr.head.q35=apr.head.q35===b.dataset.v?'':b.dataset.v;saveApr();renderRecusa();});
+ updateLocks();}
 function renderColab(){const list=$('colabList');list.innerHTML='';
  apr.colab.forEach((c,i)=>{const row=document.createElement('div');row.className='colab-row';
   const sig=c.assinatura?`<div class="sign-box signed" data-sign="${i}"><img src="${c.assinatura}" alt="assinatura"></div>`
@@ -838,12 +931,31 @@ function renderSummary(){const na=Object.keys(quant).length,ne=curEvid().length;
   <div class="row"><span>Colaboradores (APR)</span><span>${apr.colab.length}</span></div>
   <div class="row"><span>Foto da equipe</span><span>${apr.head.fotoEquipe?'✓ registrada':'—'}</span></div>
   <div class="row"><span>Evidências (fotos)</span><span>${ne}</span></div>`;}
-function showView(v){document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
- $('view'+v).classList.add('active');$('tab'+v).classList.add('active');if(v==='Pdf')renderSummary();}
+/* ═══════════ BLOQUEIO DE ABAS ATÉ A APR ESTAR COMPLETA ═══════════ */
+const LOCK_TABS=['Ativ','Evid','Pdf'];   // liberadas só após a APR totalmente preenchida
+function aprComplete(){const cfg=TC();let answered=0,total=0;
+ cfg.apr.forEach(sec=>sec.q.forEach(q=>{total++;if(apr.resp[q.id]&&apr.resp[q.id].resp)answered++;}));
+ return total>0&&answered===total&&!!apr.head.q34&&!!apr.head.q35;}
+function updateLocks(){const ok=aprComplete();LOCK_TABS.forEach(t=>{const b=$('tab'+t);if(b)b.classList.toggle('locked',!ok);});}
+function showView(v){
+ if(LOCK_TABS.includes(v)&&!aprComplete()){toast('🔒 Preencha toda a APR para liberar Atividades, Evidências e PDF');v='Apr';}
+ document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+ $('view'+v).classList.add('active');$('tab'+v).classList.add('active');
+ if(v==='Pdf')renderSummary();
+ if(v==='Hist')renderHistory();
+ if(v==='Apr'){syncAprFromDados();hydrate();}
+ if(v==='Apr'||v==='Ativ')renderIdentHead();
+ updateLocks();}
 
 /* ═══════════ PDF ÚNICO: Relatório + APR + Evidências ═══════════ */
+let exporting=false;
 async function exportPDF(share){
+ if(exporting)return;                                   // evita toque duplo gerar dois relatórios / reset duplicado
+ if(!(window.jspdf&&window.jspdf.jsPDF)){toast('Biblioteca de PDF não carregou. Feche e abra o app novamente.');return;}
+ exporting=true;
+ try{
  const cfg=TC();
+ syncAprFromDados();hydrate();   // garante que a identificação do Relatório entre no cabeçalho da APR
  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});const PW=210,PH=297,M=8;let y;
  const fmtDate=s=>s?s.split('-').reverse().join('/'):'';
  const ensure=need=>{if(y+need>PH-8){doc.addPage();y=12;return true;}return false;};
@@ -854,12 +966,28 @@ async function exportPDF(share){
  doc.setFillColor(0);doc.rect(M,10,14,9,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('DPL',M+7,16,{align:'center'});
  doc.setTextColor(0);doc.setFontSize(12);doc.text(cfg.pdfTitle,M+22,16);
  const W=PW-2*M;y=21;
- cell('PLACA DO VEÍCULO',dados.placa,M,y,W*0.4,9);cell('DATA',fmtDate(dados.data),M+W*0.4,y,W*0.3,9);cell('KM INICIAL',dados.kmIni,M+W*0.7,y,W*0.15,9);cell('KM FINAL',dados.kmFim,M+W*0.85,y,W*0.15,9);y+=9;
- cell('OBRA / N°SI / NDS / OCORRÊNCIA',dados.obra,M,y,W*0.62,9);cell('INÍCIO DO TURNO',dados.inicioTurno,M+W*0.62,y,W*0.19,9);cell('FIM DE TURNO',dados.fimTurno,M+W*0.81,y,W*0.19,9);y+=9;
- cell('COMPONENTE; N° POSTE; ALIMENTADOR',dados.componente,M,y,W*0.62,9);cell('INÍCIO DESLOC.',dados.inicioDesloc,M+W*0.62,y,W*0.19,9);cell('CHEGADA LOCAL',dados.chegadaLocal,M+W*0.81,y,W*0.19,9);y+=9;
- cell('ENDEREÇO; MUNICÍPIO',dados.endereco,M,y,W*0.62,9);cell('INÍCIO SERVIÇO',dados.inicioServico,M+W*0.62,y,W*0.19,9);cell('TÉRMINO SERVIÇO',dados.terminoServico,M+W*0.81,y,W*0.19,9);y+=9;
- cell('TÉCNICO',dados.tecnico,M,y,W*0.31,9);cell('SUPERVISÃO',dados.supervisao,M+W*0.31,y,W*0.31,9);cell('INÍCIO REFEIÇÃO',dados.inicioRefeicao,M+W*0.62,y,W*0.19,9);cell('TÉRMINO REFEIÇÃO',dados.terminoRefeicao,M+W*0.81,y,W*0.19,9);y+=9;
- cell('EQUIPE',dados.equipe,M,y,W*0.31,9);cell('EQUIPE DE APOIO',dados.equipeApoio,M+W*0.31,y,W*0.69,9);y+=11;
+ /* Apenas os campos preenchidos entram no relatório de apontamento */
+ const has=v=>v!==undefined&&v!==null&&String(v).trim()!=='';
+ const idFields=[
+  {l:'PLACA DO VEÍCULO',v:dados.placa},{l:'DATA',v:fmtDate(dados.data)},
+  {l:'KM INICIAL',v:dados.kmIni},{l:'KM FINAL',v:dados.kmFim},
+  {l:'OBRA / N°SI / NDS / OCORRÊNCIA',v:dados.obra,full:true},
+  {l:'COMPONENTE; N° POSTE; ALIMENTADOR',v:dados.componente,full:true},
+  {l:'ENDEREÇO; MUNICÍPIO',v:dados.endereco,full:true},
+  {l:'TÉCNICO',v:dados.tecnico},{l:'SUPERVISÃO',v:dados.supervisao},
+  {l:'EQUIPE',v:dados.equipe},{l:'EQUIPE DE APOIO',v:dados.equipeApoio,full:true},
+  {l:'INÍCIO DO TURNO',v:dados.inicioTurno},{l:'FIM DE TURNO',v:dados.fimTurno},
+  {l:'INÍCIO DESLOC.',v:dados.inicioDesloc},{l:'CHEGADA LOCAL',v:dados.chegadaLocal},
+  {l:'INÍCIO SERVIÇO',v:dados.inicioServico},{l:'TÉRMINO SERVIÇO',v:dados.terminoServico},
+  {l:'INÍCIO REFEIÇÃO',v:dados.inicioRefeicao},{l:'TÉRMINO REFEIÇÃO',v:dados.terminoRefeicao},
+ ].filter(f=>has(f.v));
+ let hcol=0;
+ idFields.forEach(f=>{
+  if(f.full){if(hcol===1){y+=9;hcol=0;}cell(f.l,f.v,M,y,W,9);y+=9;}
+  else{const x=hcol===0?M:M+W/2;cell(f.l,f.v,x,y,W/2,9);if(hcol===1){y+=9;hcol=0;}else hcol=1;}
+ });
+ if(hcol===1)y+=9;
+ y+=2;
  const todos=$('optTodos').checked,colD=W-46,x0=M;
  const tblHead=()=>{doc.setFillColor(30,30,30);doc.rect(x0,y,W,6,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(7);
   doc.text('CÓD',x0+1.5,y+4);doc.text('DESCRIÇÃO',x0+22,y+4);doc.text('UN',x0+colD+3,y+4);doc.text('PROG',x0+colD+13,y+4);doc.text('REAL',x0+colD+27,y+4);y+=6;doc.setTextColor(0);};
@@ -871,7 +999,7 @@ async function exportPDF(share){
    doc.text(a.cod,x0+1.5,y+3.3);doc.text(dL,x0+22,y+3.3);doc.text(a.u,x0+colD+3,y+3.3);
    if(q.prog){doc.setFont('helvetica','bold');doc.text(String(q.prog),x0+colD+14,y+3.3);doc.setFont('helvetica','normal');}
    if(q.real){doc.setFont('helvetica','bold');doc.text(String(q.real),x0+colD+28,y+3.3);doc.setFont('helvetica','normal');}y+=rh;});});
- ensure(24);y+=3;boxHead('OBSERVAÇÕES',x0,y,W,20);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(0);doc.text(doc.splitTextToSize(dados.obs||'—',W-4),x0+2,y+6);y+=24;
+ if(has(dados.obs)){ensure(24);y+=3;boxHead('OBSERVAÇÕES',x0,y,W,20);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(0);doc.text(doc.splitTextToSize(dados.obs,W-4),x0+2,y+6);y+=24;}
  ensure(22);const sw=(W-4)/2;
  const drawAssin=(imgKey,nameVal,cx)=>{const img=dados[imgKey];
    if(img){try{const p=doc.getImageProperties(img);const maxW=sw-16,maxH=9;let iw=maxW,ih=iw*(p.height/p.width);if(ih>maxH){ih=maxH;iw=ih*(p.width/p.height);}doc.addImage(img,'PNG',cx-iw/2,y+11.5-ih,iw,ih);}catch(e){}}
@@ -949,16 +1077,71 @@ async function exportPDF(share){
  const total=doc.getNumberOfPages();for(let p=1;p<=total;p++){doc.setPage(p);doc.setFontSize(7);doc.setTextColor(150);doc.text(`Página ${p} de ${total}`,PW/2,PH-5,{align:'center'});}
 
  const now=nowParts();const fname=`relatorio_${team}_${(dados.obra||'').replace(/[^\w]/g,'').slice(0,14)||now.data.replace(/\//g,'-')}.pdf`;
- if(share){const blob=doc.output('blob'),file=new File([blob],fname,{type:'application/pdf'});
+ const blob=doc.output('blob');
+ const archived=await archiveReport(blob,fname,cfg);   // salva no Histórico + pasta do aparelho
+ const file=new File([blob],fname,{type:'application/pdf'});
+ if(share){
   if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({title:cfg.pdfTitle,text:dados.obra||'Relatório de serviço',files:[file]});}catch(e){if(e.name!=='AbortError')doc.save(fname);}}
   else{toast('Compartilhamento indisponível — baixando…');doc.save(fname);}}
  else doc.save(fname);
+ // O relatório fica guardado no Histórico/pasta do aparelho e o app é resetado para o próximo relatório
+ if(archived){clearTeamData();showView('Dados');toast('Relatório salvo no Histórico. App pronto para um novo relatório ✓');}
+ }finally{exporting=false;}
 }
+
+/* ═══════════ HISTÓRICO + PASTA DO APARELHO ═══════════ */
+function blobToB64(blob){return new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]||'');fr.onerror=()=>res('');fr.readAsDataURL(blob);});}
+async function saveToDevice(base64,fname){
+ const FS=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Filesystem;
+ if(!FS||!base64)return null;
+ try{const r=await FS.writeFile({path:'RelatoriosDPL/'+fname,data:base64,directory:'DOCUMENTS',recursive:true});
+  return (r&&r.uri)||('Documentos/RelatoriosDPL/'+fname);}catch(e){return null;}
+}
+async function archiveReport(blob,fname,cfg){
+ let dev=null,stored=false;
+ try{
+  const base64=await blobToB64(blob);
+  dev=await saveToDevice(base64,fname);
+  const rec={id:'h_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),team,teamLabel:cfg.label,
+   obra:dados.obra||'',dataStr:(dados.data?dados.data.split('-').reverse().join('/'):nowParts().data),
+   iso:new Date().toISOString(),fname,size:blob.size,blob,dev};
+  stored=await histPut(rec);   // aguarda a gravação confirmar antes de considerar salvo
+  renderHistory();
+ }catch(e){}
+ const ok=stored||!!dev;       // só reseta o app se houver ao menos uma cópia durável (Histórico ou pasta do aparelho)
+ toast(ok?(dev?'Salvo no Histórico e em Documentos/RelatoriosDPL ✓':'Salvo no Histórico ✓'):'Não foi possível salvar — dados mantidos');
+ return ok;
+}
+function dlBlob(blob,fname){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
+async function renderHistory(){
+ const list=$('histList');if(!list)return;
+ const recs=(await histAll()).sort((a,b)=>a.iso<b.iso?1:-1);
+ const cnt=$('cntHist');if(cnt){cnt.style.display=recs.length?'inline-block':'none';cnt.textContent=recs.length;}
+ $('histEmpty').style.display=recs.length?'none':'block';
+ list.innerHTML='';
+ recs.forEach(r=>{const kb=r.size?Math.max(1,Math.round(r.size/1024)):0;const dt=new Date(r.iso),p=n=>String(n).padStart(2,'0');
+  const quando=`${p(dt.getDate())}/${p(dt.getMonth()+1)}/${dt.getFullYear()} ${p(dt.getHours())}:${p(dt.getMinutes())}`;
+  const el=document.createElement('div');el.className='hist-item';
+  el.innerHTML=`<div class="hi-top"><div class="hi-obra">${r.obra||'(sem obra)'}</div><span class="hi-team">${r.teamLabel||r.team}</span></div>
+   <div class="hi-meta">Gerado: ${quando} · ${kb} KB<br>${r.dev?('📁 '+r.dev):'💾 salvo no app'}</div>
+   <div class="hi-actions"><button class="hi-share" data-share="${r.id}">📤 Compartilhar</button><button data-dl="${r.id}">⬇️ Baixar</button><button class="hi-del" data-del="${r.id}">🗑️</button></div>`;
+  list.appendChild(el);});
+ list.querySelectorAll('[data-share]').forEach(b=>b.onclick=()=>histShare(b.dataset.share));
+ list.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>histDownload(b.dataset.dl));
+ list.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>histDelete(b.dataset.del));
+}
+async function histGet(id){return (await histAll()).find(r=>r.id===id);}
+async function histShare(id){const r=await histGet(id);if(!r)return;const file=new File([r.blob],r.fname,{type:'application/pdf'});
+ if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({title:r.fname,files:[file]});}catch(e){if(e.name!=='AbortError')dlBlob(r.blob,r.fname);}}
+ else dlBlob(r.blob,r.fname);}
+async function histDownload(id){const r=await histGet(id);if(!r)return;dlBlob(r.blob,r.fname);}
+async function histDelete(id){if(!confirm('Remover este relatório do histórico?'))return;histDel(id);renderHistory();}
 
 /* ═══════════ INÍCIO ═══════════ */
 (async function init(){
  migrateOldKeys();
  await openDB();evidences=(await dbAll()).sort((a,b)=>a.iso<b.iso?-1:1);
+ renderHistory();
  initInputs();
  if(team&&TEAMS[team]){loadTeamData();renderAllTeam();}
  else{openTeamSel();}
@@ -966,6 +1149,19 @@ async function exportPDF(share){
 })();
 window.addEventListener('pagehide',stopCamera);
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("./sw.js").catch(function(){});});}</script>
+<script>
+(function(){
+  // Dentro do APK (Capacitor) os arquivos já são locais: não usamos service worker,
+  // e removemos qualquer SW/cache antigo para nunca servir conteúdo desatualizado após atualizar o app.
+  var native=!!(window.Capacitor&&((window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())||(window.Capacitor.getPlatform&&window.Capacitor.getPlatform()!=="web")));
+  if(native){
+    if("serviceWorker" in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});}).catch(function(){});}
+    if(window.caches){caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});}).catch(function(){});}
+    return;
+  }
+  // Navegador / PWA: mantém o service worker para uso offline.
+  if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("./sw.js").catch(function(){});});}
+})();
+</script>
 </body>
 </html>
