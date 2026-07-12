@@ -1,5 +1,5 @@
 /* Service worker — cache do app para uso offline em campo */
-const CACHE = 'apontamento-dpl-v9';
+const CACHE = 'apontamento-dpl-v10';
 const ASSETS = [
   './',
   './index.html',

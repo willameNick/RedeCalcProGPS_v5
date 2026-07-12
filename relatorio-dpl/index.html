@@ -734,6 +734,13 @@ function closeTeamSel(){if(team)$('teamSel').classList.remove('open');}
 
 /* ═══════════ DADOS / NOVO RELATÓRIO ═══════════ */
 function initInputs(){
+ // Todas as letras digitadas nos relatórios ficam em MAIÚSCULAS.
+ // Roda na fase de captura (antes dos handlers de cada campo) para que dados/APR/PDF/Excel já recebam o texto em maiúsculo.
+ document.addEventListener('input',e=>{const el=e.target;
+  if(!el||!el.matches||!el.matches('input[type="text"],input[type="search"],input:not([type]),textarea'))return;
+  const s=el.selectionStart,en=el.selectionEnd,up=el.value.toUpperCase();
+  if(up!==el.value){el.value=up;try{el.setSelectionRange(s,en);}catch(_){}}
+ },true);
  document.querySelectorAll('[data-f]').forEach(el=>{el.addEventListener('input',()=>{dados[el.dataset.f]=el.value;saveDados();renderIdentHead();});});
  document.querySelectorAll('[data-a]').forEach(el=>{el.addEventListener('input',()=>{apr.head[el.dataset.a]=el.value;saveApr();});});
  $('signBoxTec').addEventListener('click',()=>openSignDados('assTecnicoImg'));
