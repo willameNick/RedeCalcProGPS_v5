@@ -952,6 +952,7 @@ function showView(v){
  if(v==='Hist')renderHistory();
  if(v==='Apr'){syncAprFromDados();hydrate();}
  if(v==='Apr'||v==='Ativ')renderIdentHead();
+ if(v==='Evid'){if(!stream)startCamera();}else stopCamera();   // câmera só liga na aba Evidências
  updateLocks();}
 
 /* ═══════════ PDF ÚNICO: Relatório + APR + Evidências ═══════════ */
@@ -1085,14 +1086,11 @@ async function exportPDF(share){
 
  const now=nowParts();const fname=`relatorio_${team}_${(dados.obra||'').replace(/[^\w]/g,'').slice(0,14)||now.data.replace(/\//g,'-')}.pdf`;
  const blob=doc.output('blob');
- const archived=await archiveReport(blob,fname,cfg);   // salva no Histórico + pasta do aparelho
- const file=new File([blob],fname,{type:'application/pdf'});
- if(share){
-  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({title:cfg.pdfTitle,text:dados.obra||'Relatório de serviço',files:[file]});}catch(e){if(e.name!=='AbortError')doc.save(fname);}}
-  else{toast('Compartilhamento indisponível — baixando…');doc.save(fname);}}
+ const res=await archiveReport(blob,fname,cfg);   // salva no Histórico + pasta do aparelho (PDF + Excel)
+ if(share)await shareFiles([{name:fname,blob:blob},{name:res.xlsxName,blob:res.xlsxBlob}]);
  else doc.save(fname);
  // O relatório fica guardado no Histórico/pasta do aparelho e o app é resetado para o próximo relatório
- if(archived){clearTeamData();showView('Dados');toast('Relatório salvo no Histórico. App pronto para um novo relatório ✓');}
+ if(res.ok){clearTeamData();showView('Dados');toast('Relatório salvo no Histórico. App pronto para um novo relatório ✓');}
  }finally{exporting=false;}
 }
 
@@ -1137,25 +1135,22 @@ function buildXlsxBlob(sheetName,rows){let sd='';
  const zip=_zipStore([{name:'[Content_Types].xml',data:_u8(ct)},{name:'_rels/.rels',data:_u8(rels)},{name:'xl/workbook.xml',data:_u8(wbk)},{name:'xl/_rels/workbook.xml.rels',data:_u8(wr)},{name:'xl/worksheets/sheet1.xml',data:_u8(sheet)}]);
  return new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});}
 function reportRows(cfg){const fmt=s=>s?String(s).split('-').reverse().join('/'):'';const rows=[];
- rows.push([cfg.pdfTitle]);rows.push([]);
- [['Placa',dados.placa],['Data',fmt(dados.data)],['KM Inicial',dados.kmIni],['KM Final',dados.kmFim],
-  ['Obra / N°SI / NDS / Ocorrência',dados.obra],['Componente; N° Poste; Alimentador',dados.componente],
-  ['Endereço; Município',dados.endereco],['Técnico',dados.tecnico],['Supervisão',dados.supervisao],
-  ['Equipe',dados.equipe],['Equipe de Apoio',dados.equipeApoio],
-  ['Início do Turno',dados.inicioTurno],['Fim de Turno',dados.fimTurno],['Início Deslocamento',dados.inicioDesloc],
-  ['Chegada no Local',dados.chegadaLocal],['Início Serviço',dados.inicioServico],['Término Serviço',dados.terminoServico],
-  ['Início Refeição',dados.inicioRefeicao],['Término Refeição',dados.terminoRefeicao]]
-  .filter(r=>r[1]!==undefined&&r[1]!==null&&String(r[1]).trim()!=='').forEach(r=>rows.push([r[0],String(r[1])]));
- rows.push([]);rows.push(['CÓD','DESCRIÇÃO','UN','PROG','REAL']);
- cfg.cats.forEach((cat,ci)=>{const items=cfg.atv.filter(a=>a.c===ci&&quant[a.cod]&&(quant[a.cod].real||quant[a.cod].prog));
-  if(!items.length)return;rows.push([cat]);
-  items.forEach(a=>{const q=quant[a.cod]||{};rows.push([a.cod,a.d,a.u,q.prog!=null?q.prog:'',q.real!=null?q.real:'']);});});
- if(dados.obs&&dados.obs.trim()){rows.push([]);rows.push(['Observações',dados.obs]);}
+ // Excel = somente o relatório de ATIVIDADES (apontamento)
+ rows.push(['RELATÓRIO DE ATIVIDADES — '+cfg.label]);
+ const ref=[];if(dados.obra)ref.push('Obra: '+dados.obra);if(dados.data)ref.push('Data: '+fmt(dados.data));if(dados.equipe)ref.push('Equipe: '+dados.equipe);
+ if(ref.length)rows.push([ref.join('    ')]);
+ rows.push([]);
+ rows.push(['CATEGORIA','CÓD','DESCRIÇÃO','UN','PROG','REAL']);
+ let any=false;
+ cfg.cats.forEach((cat,ci)=>{cfg.atv.filter(a=>a.c===ci&&quant[a.cod]&&(quant[a.cod].real!=null||quant[a.cod].prog!=null)).forEach(a=>{
+   const q=quant[a.cod]||{};any=true;
+   rows.push([cat,a.cod,a.d,a.u,(q.prog!=null?q.prog:''),(q.real!=null?q.real:'')]);});});
+ if(!any)rows.push(['Nenhuma atividade apontada']);
  return rows;}
 async function archiveReport(blob,fname,cfg){
  let dev=null,stored=false;
  const xlsxName=fname.replace(/\.pdf$/i,'')+'.xlsx';
- let xlsxBlob=null;try{xlsxBlob=buildXlsxBlob('Relatório',reportRows(cfg));}catch(e){xlsxBlob=null;}
+ let xlsxBlob=null;try{xlsxBlob=buildXlsxBlob('Atividades',reportRows(cfg));}catch(e){xlsxBlob=null;}
  try{
   const base64=await blobToB64(blob);
   dev=await saveToDevice(base64,fname);
@@ -1168,7 +1163,7 @@ async function archiveReport(blob,fname,cfg){
  }catch(e){}
  const ok=stored||!!dev;       // só reseta o app se houver ao menos uma cópia durável (Histórico ou pasta do aparelho)
  toast(ok?(dev?'PDF + Excel salvos no Histórico e em Documentos/RelatoriosDPL ✓':'PDF + Excel salvos no Histórico ✓'):'Não foi possível salvar — dados mantidos');
- return ok;
+ return {ok,xlsxBlob,xlsxName};
 }
 function dlBlob(blob,fname){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
 async function renderHistory(){
@@ -1189,11 +1184,21 @@ async function renderHistory(){
  list.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>histDelete(b.dataset.del));
 }
 async function histGet(id){return (await histAll()).find(r=>r.id===id);}
+async function shareFiles(items){
+ items=(items||[]).filter(it=>it&&it.blob);if(!items.length){toast('Nada para compartilhar');return;}
+ const typeOf=n=>/\.xlsx$/i.test(n)?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/pdf';
+ // 1) Dentro do APK: grava em cache e compartilha via plugin nativo (Capacitor Share) — abre as opções do Android
+ const Cap=window.Capacitor,FS=Cap&&Cap.Plugins&&Cap.Plugins.Filesystem,Sh=Cap&&Cap.Plugins&&Cap.Plugins.Share;
+ if(FS&&Sh){try{const uris=[];
+   for(const it of items){const b64=await blobToB64(it.blob);const w=await FS.writeFile({path:'compartilhar/'+it.name,data:b64,directory:'CACHE',recursive:true});uris.push(w.uri);}
+   await Sh.share({title:'Relatório DPL',text:'Relatório de serviço (PDF + Excel)',files:uris});return;}catch(e){if(e&&/cancel/i.test(String(e.message||e)))return;}}
+ // 2) Navegador com Web Share de arquivos
+ const files=items.map(it=>new File([it.blob],it.name,{type:typeOf(it.name)}));
+ if(navigator.canShare&&navigator.canShare({files})){try{await navigator.share({files});return;}catch(e){if(e.name==='AbortError')return;}}
+ // 3) Sem compartilhamento disponível: baixa os arquivos
+ files.forEach(f=>dlBlob(f,f.name));toast('Compartilhamento indisponível — arquivos baixados');}
 async function histShare(id){const r=await histGet(id);if(!r)return;
- const files=[new File([r.blob],r.fname,{type:'application/pdf'})];
- if(r.xlsx)files.push(new File([r.xlsx],r.xlsxName||r.fname.replace(/\.pdf$/i,'')+'.xlsx',{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
- if(navigator.canShare&&navigator.canShare({files})){try{await navigator.share({title:r.fname,text:r.obra||'Relatório de serviço',files});}catch(e){if(e.name!=='AbortError')files.forEach(f=>dlBlob(f,f.name));}}
- else files.forEach(f=>dlBlob(f,f.name));}
+ await shareFiles([{name:r.fname,blob:r.blob},{name:r.xlsxName||r.fname.replace(/\.pdf$/i,'')+'.xlsx',blob:r.xlsx}]);}
 async function histDownload(id){const r=await histGet(id);if(!r)return;dlBlob(r.blob,r.fname);}
 async function histDelete(id){if(!confirm('Remover este relatório do histórico?'))return;histDel(id);renderHistory();}
 
@@ -1205,9 +1210,10 @@ async function histDelete(id){if(!confirm('Remover este relatório do histórico
  initInputs();
  if(team&&TEAMS[team]){loadTeamData();renderAllTeam();}
  else{openTeamSel();}
- watchLocation();startCamera();
+ watchLocation();   // câmera é iniciada só ao abrir a aba Evidências (evita atraso/permite abrir o app mais rápido)
 })();
 window.addEventListener('pagehide',stopCamera);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopCamera();else if($('viewEvid').classList.contains('active')&&!stream)startCamera();});
 </script>
 <script>
 (function(){
