@@ -1195,10 +1195,17 @@ async function shareFiles(items){
  const typeOf=n=>/\.xlsx$/i.test(n)?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/pdf';
  // 1) Dentro do APK: grava em cache e compartilha via plugin nativo (Capacitor Share) — abre as opções do Android com os 2 arquivos
  if(isNative()){
-  try{const uris=[];
-   for(const it of items){const b64=await blobToB64(it.blob);const w=await nativeCall('Filesystem','writeFile',{path:'compartilhar/'+it.name,data:b64,directory:'CACHE',recursive:true});uris.push(w.uri);}
+  let stage='iniciando';
+  try{
+   const C=window.Capacitor;
+   if(!C||typeof C.nativePromise!=='function'){alert('Compartilhamento indisponível: bridge do Capacitor não encontrado. Desinstale e reinstale o aplicativo.');return;}
+   const uris=[];
+   for(const it of items){stage='gravar '+it.name;const b64=await blobToB64(it.blob);
+    const w=await nativeCall('Filesystem','writeFile',{path:'compartilhar/'+it.name,data:b64,directory:'CACHE',recursive:true});
+    if(!w||!w.uri)throw new Error('gravação sem URI');uris.push(w.uri);}
+   stage='abrir compartilhamento';
    await nativeCall('Share','share',{title:'Relatório DPL',text:'Relatório de serviço (PDF + Excel)',files:uris});
-  }catch(e){const m=String((e&&e.message)||e||'');if(!/cancel|abort|dismiss/i.test(m))toast('Falha ao compartilhar: '+m);}
+  }catch(e){const m=String((e&&e.message)||e||'');if(!/cancel|abort|dismiss/i.test(m))alert('Não foi possível compartilhar ('+stage+'): '+m);}
   return;
  }
  // 2) Navegador com Web Share de arquivos
@@ -1226,16 +1233,12 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)stopCamera(
 </script>
 <script>
 (function(){
-  // Dentro do APK (Capacitor) os arquivos já são locais: não usamos service worker,
-  // e removemos qualquer SW/cache antigo para nunca servir conteúdo desatualizado após atualizar o app.
-  var native=!!(window.Capacitor&&((window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())||(window.Capacitor.getPlatform&&window.Capacitor.getPlatform()!=="web")));
-  if(native){
+  // NÃO registramos service worker (evita servir versões antigas em cache).
+  // Removemos qualquer SW/cache remanescente de versões anteriores.
+  try{
     if("serviceWorker" in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});}).catch(function(){});}
-    if(window.caches){caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});}).catch(function(){});}
-    return;
-  }
-  // Navegador / PWA: mantém o service worker para uso offline.
-  if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("./sw.js").catch(function(){});});}
+    if(window.caches&&caches.keys){caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k);});}).catch(function(){});}
+  }catch(e){}
 })();
 </script>
 </body>
