@@ -1096,10 +1096,16 @@ async function exportPDF(share){
 
 /* ═══════════ HISTÓRICO + PASTA DO APARELHO ═══════════ */
 function blobToB64(blob){return new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]||'');fr.onerror=()=>res('');fr.readAsDataURL(blob);});}
+/* Chamada de plugin Capacitor via bridge nativo (o app é HTML puro, sem @capacitor/core:
+   os plugins NÃO ficam em Capacitor.Plugins; usamos o Capacitor.nativePromise do bridge injetado). */
+function isNative(){const C=window.Capacitor;return !!(C&&((typeof C.isNativePlatform==='function'&&C.isNativePlatform())||(typeof C.getPlatform==='function'&&C.getPlatform()!=='web')));}
+function nativeCall(plugin,method,options){const C=window.Capacitor;
+ if(C&&typeof C.nativePromise==='function')return C.nativePromise(plugin,method,options);
+ if(C&&C.Plugins&&C.Plugins[plugin]&&typeof C.Plugins[plugin][method]==='function')return C.Plugins[plugin][method](options);
+ return Promise.reject(new Error('Capacitor indisponível'));}
 async function saveToDevice(base64,fname){
- const FS=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Filesystem;
- if(!FS||!base64)return null;
- try{const r=await FS.writeFile({path:'RelatoriosDPL/'+fname,data:base64,directory:'DOCUMENTS',recursive:true});
+ if(!isNative()||!base64)return null;
+ try{const r=await nativeCall('Filesystem','writeFile',{path:'RelatoriosDPL/'+fname,data:base64,directory:'DOCUMENTS',recursive:true});
   return (r&&r.uri)||('Documentos/RelatoriosDPL/'+fname);}catch(e){return null;}
 }
 /* ── Gerador de planilha .xlsx sem dependências (OOXML + zip STORE) ── */
@@ -1187,11 +1193,14 @@ async function histGet(id){return (await histAll()).find(r=>r.id===id);}
 async function shareFiles(items){
  items=(items||[]).filter(it=>it&&it.blob);if(!items.length){toast('Nada para compartilhar');return;}
  const typeOf=n=>/\.xlsx$/i.test(n)?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/pdf';
- // 1) Dentro do APK: grava em cache e compartilha via plugin nativo (Capacitor Share) — abre as opções do Android
- const Cap=window.Capacitor,FS=Cap&&Cap.Plugins&&Cap.Plugins.Filesystem,Sh=Cap&&Cap.Plugins&&Cap.Plugins.Share;
- if(FS&&Sh){try{const uris=[];
-   for(const it of items){const b64=await blobToB64(it.blob);const w=await FS.writeFile({path:'compartilhar/'+it.name,data:b64,directory:'CACHE',recursive:true});uris.push(w.uri);}
-   await Sh.share({title:'Relatório DPL',text:'Relatório de serviço (PDF + Excel)',files:uris});return;}catch(e){if(e&&/cancel/i.test(String(e.message||e)))return;}}
+ // 1) Dentro do APK: grava em cache e compartilha via plugin nativo (Capacitor Share) — abre as opções do Android com os 2 arquivos
+ if(isNative()){
+  try{const uris=[];
+   for(const it of items){const b64=await blobToB64(it.blob);const w=await nativeCall('Filesystem','writeFile',{path:'compartilhar/'+it.name,data:b64,directory:'CACHE',recursive:true});uris.push(w.uri);}
+   await nativeCall('Share','share',{title:'Relatório DPL',text:'Relatório de serviço (PDF + Excel)',files:uris});
+  }catch(e){const m=String((e&&e.message)||e||'');if(!/cancel|abort|dismiss/i.test(m))toast('Falha ao compartilhar: '+m);}
+  return;
+ }
  // 2) Navegador com Web Share de arquivos
  const files=items.map(it=>new File([it.blob],it.name,{type:typeOf(it.name)}));
  if(navigator.canShare&&navigator.canShare({files})){try{await navigator.share({files});return;}catch(e){if(e.name==='AbortError')return;}}
