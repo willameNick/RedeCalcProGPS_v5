@@ -1086,8 +1086,8 @@ async function exportPDF(share){
 
  const now=nowParts();const fname=`relatorio_${team}_${(dados.obra||'').replace(/[^\w]/g,'').slice(0,14)||now.data.replace(/\//g,'-')}.pdf`;
  const blob=doc.output('blob');
- const res=await archiveReport(blob,fname,cfg);   // salva no Histórico + pasta do aparelho (PDF + Excel)
- if(share)await shareFiles([{name:fname,blob:blob},{name:res.xlsxName,blob:res.xlsxBlob}]);
+ const res=await archiveReport(blob,fname,cfg);   // salva no Histórico + pasta do aparelho (PDF)
+ if(share)await shareFiles([{name:fname,blob:blob}]);
  else doc.save(fname);
  // O relatório fica guardado no Histórico/pasta do aparelho e o app é resetado para o próximo relatório
  if(res.ok){clearTeamData();showView('Dados');toast('Relatório salvo no Histórico. App pronto para um novo relatório ✓');}
@@ -1108,68 +1108,20 @@ async function saveToDevice(base64,fname){
  try{const r=await nativeCall('Filesystem','writeFile',{path:'RelatoriosDPL/'+fname,data:base64,directory:'DOCUMENTS',recursive:true});
   return (r&&r.uri)||('Documentos/RelatoriosDPL/'+fname);}catch(e){return null;}
 }
-/* ── Gerador de planilha .xlsx sem dependências (OOXML + zip STORE) ── */
-function _crc32(buf){let crc=0xFFFFFFFF;for(let i=0;i<buf.length;i++){crc^=buf[i];for(let j=0;j<8;j++)crc=(crc>>>1)^(0xEDB88320&-(crc&1));}return (crc^0xFFFFFFFF)>>>0;}
-function _u8(str){return new TextEncoder().encode(str);}
-function _le(n,bytes){const a=new Uint8Array(bytes);let v=n>>>0;for(let i=0;i<bytes;i++){a[i]=v&0xff;v=Math.floor(v/256);}return a;}
-function _zipStore(files){const chunks=[];let offset=0;const central=[];
- const put=a=>{chunks.push(a);offset+=a.length;};
- files.forEach(f=>{const nameB=_u8(f.name),crc=_crc32(f.data),off=offset;
-  put(_le(0x04034b50,4));put(_le(20,2));put(_le(0,2));put(_le(0,2));put(_le(0,2));put(_le(0,2));
-  put(_le(crc,4));put(_le(f.data.length,4));put(_le(f.data.length,4));put(_le(nameB.length,2));put(_le(0,2));
-  put(nameB);put(f.data);
-  const c=[];c.push(_le(0x02014b50,4),_le(20,2),_le(20,2),_le(0,2),_le(0,2),_le(0,2),_le(0,2),
-   _le(crc,4),_le(f.data.length,4),_le(f.data.length,4),_le(nameB.length,2),_le(0,2),_le(0,2),
-   _le(0,2),_le(0,2),_le(0,4),_le(off,4),nameB);
-  central.push(c);});
- const cdStart=offset;let cdSize=0;central.forEach(c=>c.forEach(a=>{put(a);cdSize+=a.length;}));
- put(_le(0x06054b50,4));put(_le(0,2));put(_le(0,2));put(_le(files.length,2));put(_le(files.length,2));put(_le(cdSize,4));put(_le(cdStart,4));put(_le(0,2));
- let total=0;chunks.forEach(a=>total+=a.length);const out=new Uint8Array(total);let p=0;chunks.forEach(a=>{out.set(a,p);p+=a.length;});return out;}
-function _xmlEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
-function _colName(i){let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26);}return s;}
-function buildXlsxBlob(sheetName,rows){let sd='';
- rows.forEach((row,ri)=>{sd+='<row r="'+(ri+1)+'">';
-  row.forEach((val,ci)=>{if(val===undefined||val===null||val==='')return;const ref=_colName(ci)+(ri+1);
-   if(typeof val==='number'&&isFinite(val))sd+='<c r="'+ref+'"><v>'+val+'</v></c>';
-   else sd+='<c r="'+ref+'" t="inlineStr"><is><t xml:space="preserve">'+_xmlEsc(val)+'</t></is></c>';});
-  sd+='</row>';});
- const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+sd+'</sheetData></worksheet>';
- const wbk='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+_xmlEsc(sheetName).slice(0,31)+'" sheetId="1" r:id="rId1"/></sheets></workbook>';
- const ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>';
- const rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
- const wr='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';
- const zip=_zipStore([{name:'[Content_Types].xml',data:_u8(ct)},{name:'_rels/.rels',data:_u8(rels)},{name:'xl/workbook.xml',data:_u8(wbk)},{name:'xl/_rels/workbook.xml.rels',data:_u8(wr)},{name:'xl/worksheets/sheet1.xml',data:_u8(sheet)}]);
- return new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});}
-function reportRows(cfg){const fmt=s=>s?String(s).split('-').reverse().join('/'):'';const rows=[];
- // Excel = somente o relatório de ATIVIDADES (apontamento)
- rows.push(['RELATÓRIO DE ATIVIDADES — '+cfg.label]);
- const ref=[];if(dados.obra)ref.push('Obra: '+dados.obra);if(dados.data)ref.push('Data: '+fmt(dados.data));if(dados.equipe)ref.push('Equipe: '+dados.equipe);
- if(ref.length)rows.push([ref.join('    ')]);
- rows.push([]);
- rows.push(['CATEGORIA','CÓD','DESCRIÇÃO','UN','PROG','REAL']);
- let any=false;
- cfg.cats.forEach((cat,ci)=>{cfg.atv.filter(a=>a.c===ci&&quant[a.cod]&&(quant[a.cod].real!=null||quant[a.cod].prog!=null)).forEach(a=>{
-   const q=quant[a.cod]||{};any=true;
-   rows.push([cat,a.cod,a.d,a.u,(q.prog!=null?q.prog:''),(q.real!=null?q.real:'')]);});});
- if(!any)rows.push(['Nenhuma atividade apontada']);
- return rows;}
 async function archiveReport(blob,fname,cfg){
  let dev=null,stored=false;
- const xlsxName=fname.replace(/\.pdf$/i,'')+'.xlsx';
- let xlsxBlob=null;try{xlsxBlob=buildXlsxBlob('Atividades',reportRows(cfg));}catch(e){xlsxBlob=null;}
  try{
   const base64=await blobToB64(blob);
   dev=await saveToDevice(base64,fname);
-  if(xlsxBlob){try{const xb=await blobToB64(xlsxBlob);await saveToDevice(xb,xlsxName);}catch(e){}}
   const rec={id:'h_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),team,teamLabel:cfg.label,
    obra:dados.obra||'',dataStr:(dados.data?dados.data.split('-').reverse().join('/'):nowParts().data),
-   iso:new Date().toISOString(),fname,xlsxName,size:blob.size,blob,xlsx:xlsxBlob,dev};
+   iso:new Date().toISOString(),fname,size:blob.size,blob,dev};
   stored=await histPut(rec);   // aguarda a gravação confirmar antes de considerar salvo
   renderHistory();
  }catch(e){}
  const ok=stored||!!dev;       // só reseta o app se houver ao menos uma cópia durável (Histórico ou pasta do aparelho)
- toast(ok?(dev?'PDF + Excel salvos no Histórico e em Documentos/RelatoriosDPL ✓':'PDF + Excel salvos no Histórico ✓'):'Não foi possível salvar — dados mantidos');
- return {ok,xlsxBlob,xlsxName};
+ toast(ok?(dev?'PDF salvo no Histórico e em Documentos/RelatoriosDPL ✓':'PDF salvo no Histórico ✓'):'Não foi possível salvar — dados mantidos');
+ return {ok};
 }
 function dlBlob(blob,fname){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
 async function renderHistory(){
@@ -1183,7 +1135,7 @@ async function renderHistory(){
   const el=document.createElement('div');el.className='hist-item';
   el.innerHTML=`<div class="hi-top"><div class="hi-obra">${r.obra||'(sem obra)'}</div><span class="hi-team">${r.teamLabel||r.team}</span></div>
    <div class="hi-meta">Gerado: ${quando} · ${kb} KB<br>${r.dev?('📁 '+r.dev):'💾 salvo no app'}</div>
-   <div class="hi-actions"><button class="hi-share" data-share="${r.id}">📤 Compartilhar PDF + Excel</button><button data-dl="${r.id}">⬇️ PDF</button><button class="hi-del" data-del="${r.id}">🗑️</button></div>`;
+   <div class="hi-actions"><button class="hi-share" data-share="${r.id}">📤 Compartilhar PDF</button><button data-dl="${r.id}">⬇️ Baixar</button><button class="hi-del" data-del="${r.id}">🗑️</button></div>`;
   list.appendChild(el);});
  list.querySelectorAll('[data-share]').forEach(b=>b.onclick=()=>histShare(b.dataset.share));
  list.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>histDownload(b.dataset.dl));
@@ -1204,7 +1156,7 @@ async function shareFiles(items){
     const w=await nativeCall('Filesystem','writeFile',{path:'compartilhar/'+it.name,data:b64,directory:'CACHE',recursive:true});
     if(!w||!w.uri)throw new Error('gravação sem URI');uris.push(w.uri);}
    stage='abrir compartilhamento';
-   await nativeCall('Share','share',{title:'Relatório DPL',text:'Relatório de serviço (PDF + Excel)',files:uris});
+   await nativeCall('Share','share',{title:'Relatório DPL',text:'Relatório de serviço (PDF)',files:uris});
   }catch(e){const m=String((e&&e.message)||e||'');if(!/cancel|abort|dismiss/i.test(m))alert('Não foi possível compartilhar ('+stage+'): '+m);}
   return;
  }
@@ -1214,7 +1166,7 @@ async function shareFiles(items){
  // 3) Sem compartilhamento disponível: baixa os arquivos
  files.forEach(f=>dlBlob(f,f.name));toast('Compartilhamento indisponível — arquivos baixados');}
 async function histShare(id){const r=await histGet(id);if(!r)return;
- await shareFiles([{name:r.fname,blob:r.blob},{name:r.xlsxName||r.fname.replace(/\.pdf$/i,'')+'.xlsx',blob:r.xlsx}]);}
+ await shareFiles([{name:r.fname,blob:r.blob}]);}
 async function histDownload(id){const r=await histGet(id);if(!r)return;dlBlob(r.blob,r.fname);}
 async function histDelete(id){if(!confirm('Remover este relatório do histórico?'))return;histDel(id);renderHistory();}
 
